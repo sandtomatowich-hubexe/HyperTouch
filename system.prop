@@ -1,0 +1,29 @@
+#########################################
+# HyperTouch — system.prop
+# Android 15+
+#########################################
+
+# HWUI
+debug.hwui.use_hint_manager=true
+persist.sys.ui.hw=1
+debug.egl.hw=1
+video.accelerate.hw=1
+
+# SurfaceFlinger
+debug.sf.enable_hwc_vds=1
+debug.sf.latch_unsignaled=0
+debug.gralloc.gfx_ubwc_disable=0
+ro.surface_flinger.max_frame_buffer_acquired_buffers=3
+
+# Qualcomm input (harmless no-op on MediaTek, kept for cross-variant use)
+persist.vendor.qti.inputopts.enable=true
+
+# ART / Dexopt
+pm.dexopt.bg-dexopt=speed-profile
+pm.dexopt.shared=speed
+pm.dexopt.inactive=verify
+pm.dexopt.cmdline=verify
+
+dalvik.vm.dex2oat-resolve-startup-strings=true
+dalvik.vm.minidebuginfo=true
+dalvik.vm.dex2oat-minidebuginfo=true
