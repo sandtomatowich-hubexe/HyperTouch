@@ -1,3 +1,11 @@
+<p align="center">
+  <strong>A safe and lightweight touch optimization framework for Poco X6 Pro 5G / Redmi K70E (duchamp).</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/sandtomatowich-hubexe/HyperTouch/releases/latest">Latest Release</a> •
+  <a href="https://github.com/sandtomatowich-hubexe/HyperTouch">Source Code</a>
+</p>
 # HyperTouch
 
 Touch + light performance tuning for **Poco X6 Pro 5G / Redmi K70E (duchamp)**.
