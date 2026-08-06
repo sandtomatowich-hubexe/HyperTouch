@@ -6,7 +6,7 @@
   <a href="https://github.com/sandtomatowich-hubexe/HyperTouch/releases/latest">Latest Release</a> •
   <a href="https://github.com/sandtomatowich-hubexe/HyperTouch">Source Code</a>
 </p>
-HyperTouch
+##HyperTouch
 
 Touch + light performance tuning for **Poco X6 Pro 5G / Redmi K70E (duchamp)**.
 Works with Magisk, KernelSU, KernelSU-Next, and SukiSU Ultra.
