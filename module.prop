@@ -1,6 +1,0 @@
-id=hypertouch
-name=HyperTouch
-version=v1.0
-versionCode=100
-author=Sep @C0RS0N
-description=Touch + performance tuning for Poco X6 Pro 5G / Redmi K70E (duchamp). Adjustable report-rate boost, PowerKeeper bypass, and a WebUI control panel.
