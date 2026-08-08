@@ -1,78 +1,103 @@
-<p align="center">
-  <img src="assets/banner.png" alt="HyperTouch Banner">
-</p>
+# HyperTouch
 
-## HyperTouch
+Touch response and system responsiveness tuning for **Poco X6 Pro 5G / Redmi K70E (duchamp)**, built without requiring kernel modifications — everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
 
-Touch + light performance tuning for **Poco X6 Pro 5G / Redmi K70E (duchamp)**.
-Works with Magisk, KernelSU, KernelSU-Next, and SukiSU Ultra.
+Works with **Magisk**, **KernelSU**, **KernelSU-Next**, and **SukiSU Ultra**. WebUI needs one of the KernelSU-family managers (or a standalone viewer like KsuWebUIStandalone/MMRL) — plain Magisk manager doesn't render WebUIs.
 
-## What changed from Previous version?
+## Features
 
-1. **Structural bug:** `post-fs-data.sh`, `service.sh`, and `system.prop` were
-   inside a `common/` subfolder. Magisk/KernelSU only auto-run those files
-   when they sit at the module's root — nested in `common/`, they never
-   executed. Everything is now at the top level.
-2. **`update-binary` had an injected line** that silently opened
-   `https://t.me/modulostk` on every install via `am start`, in the
-   background, with no consent prompt. Removed — a module you ship under
-   your own name shouldn't force-open a link on someone's phone.
-3. **`action.sh` was referenced by `customize.sh` but didn't exist.** Added,
-   and it now re-runs the tweaks on demand from the manager's Action button.
-4. **`service.sh` had `SKIPUNZIP=0` before its own shebang** — that flag
-   belongs in `customize.sh`, not here, and doing it this way had no effect.
-   Removed.
-5. **Battery temp spoof (`bms/temp` → 250) is now off by default**, gated
-   behind `SPOOF_BATTERY_TEMP=1` in `settings.conf`. It hides real
-   overheating from the system, so it's opt-in rather than forced.
-6. All sysfs writes now go through a `write()` helper that checks `-w`
-   first, so an unavailable node just gets skipped and logged instead of
-   spamming logcat errors.
-7. `module.prop` had placeholder joke branding and someone else's author
-   tag. Replaced with real metadata.
-8. Logic that used to only run at boot now lives in `apply.sh`, called by
-   `service.sh` (boot), `action.sh` (manager button), and the WebUI
-   ("Apply now") — so toggling a setting doesn't require a reboot.
+| Feature | Layer | Status | Notes |
+|---|---|---|---|
+| Boosted touch report rate | Kernel (sysfs) | ✅ Working | `duchamp` only — see [Device support](#device-support) |
+| Disable PowerKeeper throttling | System | ✅ Working | No-ops safely on non-HyperOS ROMs |
+| Battery temp override | Kernel (sysfs) | ✅ Working, opt-in | Off by default — hides real overheating from the system |
+| Smooth Touch (animation scale) | Userspace | ✅ Working | Kernel-independent, works on any device/ROM |
+| Priority Apps (background exemption) | Userspace | ✅ Working | Kernel-independent, works on any device/ROM |
+| TG Lag Fix | Userspace | 🧪 Experimental | Convenience preset of Priority Apps — see [below](#tg-lag-fix) |
+| Touch sensitivity / edge (glove) / palm rejection | Kernel (sysfs) | ⏳ Pending | Needs real node names — see [Contributing](#contributing) |
+| WebUI (Material / MIUI themes) | — | ✅ Working | Multi-page: Home, Tweaks, Apps, Settings |
 
-## Feature status
+## Installation
 
-| Feature | Status |
-|---|---|
-| Boosted touch report rate | Working — toggles `switch_report_rate` |
-| Disable PowerKeeper throttling | Working |
-| Battery temp override | Working, opt-in, off by default |
-| Sensitivity / edge (glove) / palm rejection | **Not wired up yet** |
-
-The sensitivity/edge/palm-reject sysfs nodes weren't in the original module
-and I couldn't confirm the real attribute names for this kernel build from
-public sources — guessing at magic values here isn't worth shipping.
-
-**To unlock them:** run `tools/probe_touch.sh` as root (it only reads, never
-writes) and share the output. Once the real node names are confirmed, they
-drop straight into `settings.conf` (`TOUCH_SENSITIVITY_PATH`,
-`TOUCH_EDGE_PATH`, `PALM_REJECT_PATH` + matching `_VALUE` fields) and
-`apply.sh` picks them up automatically — no script changes needed.
-
-```
-adb shell su -c "sh /sdcard/probe_touch.sh" > probe_output.txt
-```
+1. Flash `HyperTouch.zip` in your manager.
+2. Reboot, **or** open the module's Action/WebUI afterward to apply without rebooting.
+3. Updating later preserves your `settings.conf` automatically — it isn't reset to defaults.
 
 ## WebUI
 
-Open the module in a WebUI-capable manager (KernelSU / KernelSU-Next /
-SukiSU Ultra manager, or a standalone viewer like KsuWebUIStandalone/MMRL)
-to get the control panel. Stock Magisk's own manager doesn't render
-WebUIs, so on plain Magisk you'd edit `settings.conf` directly and use the
-Action button (if supported) or reboot.
+Four sections, reachable from the bottom nav:
 
-## Known device-specific bits worth double-checking
+| Page | Contains |
+|---|---|
+| **Home** | Quick toggles for the tweaks you'll touch most, plus Apply Now |
+| **Tweaks** | Every device-level setting, grouped by category |
+| **Apps** | TG Lag Fix + custom Priority Apps list |
+| **Settings** | UI style (Material/MIUI), module info, Reset/Revert, links |
 
-- `persist.vendor.qti.inputopts.enable` in `system.prop` is a Qualcomm
-  property — duchamp is MediaTek (Dimensity 8300-Ultra), so it's a harmless
-  no-op here. Left in in case you reuse this on a Qualcomm variant later,
-  but worth removing if you want the prop list to only contain things that
-  actually do something on this chip.
-- CPU governor paths assume the stock 1+3+4 cluster layout
-  (`policy0`/`policy4`/`policy7`). If your kernel renumbers policies this
-  will silently no-op on the missing ones (thanks to the `write()` guard)
-  rather than error.
+Switch **Material ↔ MIUI** anytime from Settings → Appearance — it's a full visual reskin (color, corner radius, iconography), not just an accent swap, and takes effect instantly.
+
+## settings.conf reference
+
+Edit by hand or through the WebUI — both write the same file, so nothing gets out of sync.
+
+| Key | Values | Default | Reboot needed? |
+|---|---|---|---|
+| `REPORT_RATE_MODE` | `0` stock / `1` boosted | `1` | No |
+| `DISABLE_POWERKEEPER` | `0` / `1` | `1` | No |
+| `SPOOF_BATTERY_TEMP` | `0` / `1` | `0` | No |
+| `TOUCH_SENSITIVITY_PATH` / `_VALUE` | sysfs path / value | blank | No |
+| `TOUCH_EDGE_PATH` / `_VALUE` | sysfs path / value | blank | No |
+| `PALM_REJECT_PATH` / `_VALUE` | sysfs path / value | blank | No |
+| `SMOOTH_TOUCH_MODE` | `0` stock / `1` fast / `2` instant | `1` | No |
+| `PRIORITY_APPS` | space-separated package names | blank | No |
+| `TG_LAG_FIX` | `0` / `1` | `0` | No |
+| `UI_STYLE` | `material` / `miui` | `material` | No (WebUI only) |
+| `FORCE_EXPERIMENTAL` | `0` / `1` | unset | No |
+
+Everything here applies live through `apply.sh` — nothing in this table needs a reboot.
+
+## Management CLI
+
+`action.sh` is what runs when you tap **Action** in your manager, and also works from a terminal:
+
+```
+action.sh                   re-apply current settings
+action.sh status             show current settings + device profile
+action.sh enable <feature>   boost | powerkeeper | battery-spoof | tg-fix
+action.sh disable <feature>  (same feature names)
+action.sh reset-touch        clear sensitivity/edge/palm-reject values
+action.sh reset              restore settings.conf to shipped defaults
+action.sh revert             temporarily undo tweaks (settings kept)
+action.sh help                usage
+```
+
+## Device support
+
+Hardware-specific tweaks (report rate, CPU/GPU governors, thermal, battery spoof) only run on devices with a **confirmed profile** — right now, just `duchamp`. On anything else the module still works, just in a reduced **experimental** mode:
+
+| Profile | What runs |
+|---|---|
+| `confirmed` (duchamp) | Everything |
+| `experimental` (anything else) | Smooth Touch, Priority Apps, PowerKeeper — hardware sysfs paths skipped |
+
+Set `FORCE_EXPERIMENTAL=1` in `settings.conf` to try duchamp's hardware paths on another device anyway. They're guarded by a `-w` check either way, so a wrong guess just no-ops rather than doing something unexpected — but it's still a guess, not a confirmation.
+
+## TG Lag Fix
+
+<a id="tg-lag-fix"></a>
+Sluggish scrolling in Telegram (and some other apps) after HyperOS updates is a real, community-reported issue — but the root cause hasn't been pinned down by Xiaomi or the community. `TG_LAG_FIX` exempts Telegram from Doze/App Standby/PowerKeeper background limits, which is the only safe userspace lever available without an Xposed-level hook into the renderer. It's a background-execution fix, not a rendering fix — worth testing, not guaranteed. Use the general **Priority Apps** list for the same treatment on any other app.
+
+## Contributing
+
+**Unlocking touch tuning:** run `tools/probe_touch.sh` as root (read-only, never writes) and open an issue with the output. Once real node names are confirmed, they go straight into `settings.conf`.
+
+**Adding a new device:** run `tools/probe_device.sh` as root and open an issue with the output. Confirmed devices get a case-statement entry in `apply.sh` with their own paths — not guesses.
+
+```
+adb shell su -c "sh /sdcard/probe_touch.sh"  > probe_touch.txt
+adb shell su -c "sh /sdcard/probe_device.sh" > probe_device.txt
+```
+
+## Credits
+
+Built by Sep.
