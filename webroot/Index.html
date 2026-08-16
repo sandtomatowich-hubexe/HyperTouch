@@ -1,329 +1,11 @@
 <!doctype html>
-<html lang="en" data-theme="material">
+<html lang="en" data-mode="dark" data-wallpaper="none" data-anim="full">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>HyperTouch</title>
-<style>
-  :root{
-    --font-sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, "Roboto Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-    --warn:#ffb454;
-    --warn-soft: rgba(255,180,84,.14);
-  }
-
-  /* ---- Material (default) ---- */
-  [data-theme="material"]{
-    --bg:#101418;
-    --nav-bg: rgba(23,27,32,.70);
-    --surface:#1b2025;
-    --surface-2:#20262c;
-    --border:#2b3238;
-    --text:#e7ecef;
-    --text-dim:#9aa5ad;
-    --text-faint:#5f6a72;
-    --accent:#a6c8ff;
-    --accent-on:#052a63;
-    --accent-soft: rgba(166,200,255,.14);
-    --radius-card:16px;
-    --radius-control:999px;
-  }
-
-  /* ---- MIUI / HyperOS ---- */
-  [data-theme="miui"]{
-    --bg:#000000;
-    --nav-bg: rgba(24,24,26,.66);
-    --surface:#1c1c1e;
-    --surface-2:#242426;
-    --border:#302f31;
-    --text:#f2f2f2;
-    --text-dim:#9c9c9e;
-    --text-faint:#636365;
-    --accent:#ff8a3d;
-    --accent-on:#3a1900;
-    --accent-soft: rgba(255,138,61,.16);
-    --radius-card:26px;
-    --radius-control:999px;
-  }
-
-  /* True superellipse corners where the browser supports it (current
-     Chromium/WebView) — falls back to the plain border-radius above
-     everywhere else. Matches Miuix's squircle-by-default components. */
-  @supports (corner-shape: squircle){
-    .card, .hero-card, .stat-card, .switch, .segmented, .seg-btn,
-    button.primary, button.secondary, nav.navbar, .navitem.active, .chip,
-    .chip-input, .chip-add, .dialog, .row-icon, .hero-icon-badge, .locked-tag{
-      corner-shape:squircle;
-    }
-  }
-
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
-    font-family:var(--font-sans); -webkit-user-select:none; user-select:none; height:100%;}
-  .app{display:flex; flex-direction:column; min-height:100vh;}
-
-  /* ---- topbar ---- */
-  header.topbar{
-    padding:22px 18px 20px; position:sticky; top:0; z-index:5;
-    background:var(--bg); border-bottom:1px solid transparent;
-    transition:padding .2s ease, background-color .2s ease, border-color .2s ease, backdrop-filter .2s ease;
-  }
-  header.topbar.compact{
-    padding:14px 18px 12px;
-    background:var(--nav-bg);
-    -webkit-backdrop-filter:blur(22px) saturate(160%);
-    backdrop-filter:blur(22px) saturate(160%);
-    border-bottom-color:var(--border);
-  }
-  header.topbar.compact .page-title{font-size:19px; margin-top:0;}
-  header.topbar.compact .page-sub{opacity:0; height:0; margin:0; overflow:hidden;}
-  .brand{
-    font-family:var(--font-mono); font-size:12px; letter-spacing:.22em;
-    color:var(--accent); text-transform:uppercase; display:flex; align-items:center; gap:8px;
-  }
-  .dot{width:6px; height:6px; border-radius:50%; background:var(--text-faint); flex:none;}
-  .dot.live{background:var(--accent); box-shadow:0 0 0 0 var(--accent-soft); animation:pulse 2s infinite;}
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 var(--accent-soft);}
-    70%{box-shadow:0 0 0 7px rgba(0,0,0,0);}
-    100%{box-shadow:0 0 0 0 rgba(0,0,0,0);}
-  }
-  .page-title{font-size:30px; font-weight:800; margin-top:6px; letter-spacing:-.01em; transition:font-size .2s ease, margin-top .2s ease;}
-  .page-sub{font-size:13.5px; color:var(--text-dim); margin-top:3px; transition:opacity .15s ease;}
-
-  /* ---- hero grid (Home) ---- */
-  .hero-grid{display:grid; grid-template-columns:1.15fr 1fr; gap:10px; margin-bottom:14px;}
-  .hero-card{
-    grid-row:span 2; background:var(--surface); border:1px solid var(--border);
-    border-radius:calc(var(--radius-card) + 6px); padding:18px;
-    display:flex; flex-direction:column; justify-content:space-between; min-height:172px;
-    border:none; text-align:left; font-family:var(--font-sans); appearance:none;
-  }
-  .hero-card.on{background:linear-gradient(160deg, var(--accent-soft), var(--surface) 75%); box-shadow:inset 0 0 0 1.5px var(--accent);}
-  .hero-card:not(.on){box-shadow:inset 0 0 0 1px var(--border);}
-  .hero-icon-badge{
-    width:42px; height:42px; border-radius:13px; background:var(--surface-2);
-    display:flex; align-items:center; justify-content:center; color:var(--text-dim);
-  }
-  .hero-icon-badge svg{width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:2;}
-  .hero-card.on .hero-icon-badge{background:var(--accent); color:var(--accent-on);}
-  .hero-status{font-size:21px; font-weight:800; margin-top:16px; color:var(--text);}
-  .hero-label{font-size:12.5px; color:var(--text-dim); margin-top:3px; line-height:1.4;}
-
-  .hero-stack{display:flex; flex-direction:column; gap:10px;}
-  .stat-card{
-    flex:1; background:var(--surface); border:1px solid var(--border);
-    border-radius:var(--radius-card); padding:14px 16px; display:flex; flex-direction:column; justify-content:center;
-  }
-  .stat-value{font-size:19px; font-weight:800;}
-  .stat-label{font-size:10.5px; color:var(--text-dim); margin-top:3px; text-transform:uppercase; letter-spacing:.06em;}
-
-  /* ---- main / pages ---- */
-  main{flex:1; padding:16px 16px calc(112px + env(safe-area-inset-bottom));}
-  .page[hidden]{display:none;}
-  .section-title{
-    font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
-    color:var(--text-faint); margin:20px 2px 8px;
-  }
-  .section-title:first-child{margin-top:2px;}
-
-  /* ---- card ---- */
-  .card{
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-card);
-    margin-bottom:12px; overflow:hidden;
-  }
-  .card.disabled{opacity:.55;}
-  .row{display:flex; align-items:center; gap:12px; padding:14px 16px;}
-  .row + .row{border-top:1px solid var(--border);}
-  .row-icon{
-    width:34px; height:34px; border-radius:11px; flex:none;
-    display:flex; align-items:center; justify-content:center; color:var(--text-dim);
-  }
-  .row-icon svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2;}
-  .icon-blue{background:rgba(120,170,255,.16); color:#8fb8ff;}
-  .icon-purple{background:rgba(190,140,255,.16); color:#c9a4ff;}
-  .icon-green{background:rgba(120,230,170,.16); color:#8be6ba;}
-  .icon-pink{background:rgba(255,140,190,.16); color:#ff9fc4;}
-  .icon-orange{background:rgba(255,150,90,.16); color:#ffab7a;}
-  .eyebrow{
-    font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint);
-    letter-spacing:.01em; padding:8px 16px 0; opacity:.65;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .row-text{flex:1; min-width:0;}
-  .label{font-size:15px; font-weight:600;}
-  .sub{font-size:12.5px; color:var(--text-dim); margin-top:2px; line-height:1.4;}
-  .sub.warn{color:var(--warn);}
-  .locked-tag{
-    font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint);
-    border:1px solid var(--border); border-radius:5px; padding:3px 6px; flex:none; height:fit-content;
-  }
-
-  /* ---- switch ---- */
-  .switch{
-    position:relative; width:46px; height:27px; flex:none;
-    border-radius:var(--radius-control); background:var(--surface-2); border:1px solid var(--border);
-    transition:background .15s, border-color .15s;
-  }
-  .switch::after{
-    content:""; position:absolute; top:2px; left:2px; width:21px; height:21px;
-    border-radius:50%; background:var(--text-dim); transition:transform .15s, background .15s;
-  }
-  .switch.on{background:var(--accent-soft); border-color:var(--accent);}
-  .switch.on::after{transform:translateX(19px); background:var(--accent);}
-  .switch.warn.on{background:var(--warn-soft); border-color:var(--warn);}
-  .switch.warn.on::after{background:var(--warn);}
-
-  /* ---- segmented control ---- */
-  .segmented{
-    display:flex; gap:3px; background:var(--surface-2); border:1px solid var(--border);
-    border-radius:var(--radius-control); padding:3px; margin:0 16px 14px;
-  }
-  .seg-btn{
-    flex:1; border:none; background:transparent; color:var(--text-dim); font-family:var(--font-sans);
-    font-size:12.5px; font-weight:600; padding:9px 4px; border-radius:calc(var(--radius-control) - 3px);
-  }
-  .seg-btn.active{background:var(--accent); color:var(--accent-on);}
-
-  /* ---- buttons ---- */
-  button.primary{
-    width:100%; padding:15px; border-radius:var(--radius-card); border:none;
-    background:var(--accent); color:var(--accent-on); font-size:15px; font-weight:700;
-    font-family:var(--font-sans);
-  }
-  button.primary:disabled{background:var(--text-faint); color:var(--bg);}
-  button.secondary{
-    width:100%; padding:13px; border-radius:var(--radius-card); border:1px solid var(--border);
-    background:var(--surface); color:var(--text); font-size:14px; font-weight:600; font-family:var(--font-sans);
-    margin-top:8px;
-  }
-  button.danger-text{color:var(--warn);}
-
-  .status{
-    margin-top:10px; font-family:var(--font-mono); font-size:12px; color:var(--text-dim);
-    min-height:16px; white-space:pre-wrap; overflow-wrap:break-word;
-  }
-  .status.err{color:var(--warn);}
-
-  /* ---- chips (priority apps) ---- */
-  .chip-input-row{display:flex; gap:8px; padding:14px 16px;}
-  .chip-input{
-    flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:10px;
-    padding:10px 12px; color:var(--text); font-size:13px; font-family:var(--font-mono);
-  }
-  .chip-add{
-    flex:none; padding:0 16px; border-radius:10px; border:none; background:var(--accent);
-    color:var(--accent-on); font-weight:700; font-size:14px;
-  }
-  .chip-list{display:flex; flex-wrap:wrap; gap:8px; padding:0 16px 14px;}
-  .chip-list:empty{display:none;}
-  .chip{
-    display:flex; align-items:center; gap:6px; background:var(--surface-2); border:1px solid var(--border);
-    border-radius:999px; padding:6px 6px 6px 12px; font-family:var(--font-mono); font-size:12px;
-  }
-  .chip button{
-    border:none; background:var(--border); color:var(--text); width:18px; height:18px; border-radius:50%;
-    font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center; padding:0;
-  }
-
-  /* ---- about ---- */
-  .kv{display:flex; justify-content:space-between; padding:12px 16px; font-size:13px;}
-  .kv + .kv{border-top:1px solid var(--border);}
-  .kv .k{color:var(--text-dim);}
-  .kv .v{font-family:var(--font-mono); text-align:right;}
-
-  /* ---- glass navbar (floating) ---- */
-  nav.navbar{
-    position:fixed; left:16px; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:10;
-    display:flex; padding:8px;
-    background:var(--nav-bg);
-    -webkit-backdrop-filter:blur(26px) saturate(180%);
-    backdrop-filter:blur(26px) saturate(180%);
-    border:1px solid rgba(255,255,255,.09);
-    border-radius:26px;
-    box-shadow:0 14px 34px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.07);
-    overflow:hidden;
-  }
-  /* True liquid glass: refracts what's actually behind the bar, not just
-     a flat blur. Layered as an enhancement — browsers that don't parse
-     url()-referenced SVG filters in backdrop-filter keep the plain blur
-     above instead of losing the glass effect entirely. */
-  @supports (backdrop-filter: blur(1px) url(#glass-distortion)){
-    nav.navbar{
-      background:color-mix(in srgb, var(--nav-bg) 70%, transparent);
-      -webkit-backdrop-filter:blur(7px) url(#glass-distortion) saturate(160%);
-      backdrop-filter:blur(7px) url(#glass-distortion) saturate(160%);
-    }
-  }
-  nav.navbar::after{
-    content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit; z-index:2;
-    background:linear-gradient(115deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 28%, rgba(255,255,255,0) 72%, rgba(255,255,255,.07) 100%);
-  }
-  nav.navbar::before{
-    content:""; position:absolute; inset:0; pointer-events:none;
-    background:linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
-    background-size:200% 100%; animation:sheen 7s ease-in-out infinite;
-  }
-  @keyframes sheen{
-    0%,100%{background-position:200% 0;} 50%{background-position:-40% 0;}
-  }
-  .navitem{
-    flex:1; border:none; background:transparent; color:var(--text-faint);
-    display:flex; flex-direction:column; align-items:center; gap:3px;
-    padding:8px 2px; font-family:var(--font-sans); font-size:10.5px; font-weight:600;
-    position:relative; z-index:1; border-radius:18px;
-  }
-  .navitem .ic{width:22px; height:22px;}
-  .navitem .ic svg{width:100%; height:100%; stroke:currentColor; fill:none; stroke-width:1.8;}
-  .navitem.active{color:var(--accent); background:var(--accent-soft);}
-  .navitem.active .ic{border-radius:12px;}
-
-  /* ---- dialog ---- */
-  .overlay{
-    position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.55);
-    display:flex; align-items:flex-end; justify-content:center;
-  }
-  .overlay[hidden]{display:none;}
-  .dialog{
-    width:100%; max-width:480px; background:var(--surface); border:1px solid var(--border);
-    border-radius:20px 20px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom));
-  }
-  .dialog-title{font-size:16px; font-weight:700; margin-bottom:6px;}
-  .dialog-body{font-size:13.5px; color:var(--text-dim); line-height:1.5; margin-bottom:16px;}
-  .dialog-actions{display:flex; gap:10px;}
-  .dialog-actions button{flex:1; padding:12px; border-radius:12px; border:1px solid var(--border);
-    background:var(--surface-2); color:var(--text); font-weight:700; font-size:14px; font-family:var(--font-sans);}
-  .dialog-actions button.confirm{background:var(--warn); border-color:var(--warn); color:#2a1400;}
-
-  /* ---- toast ---- */
-  .toast-stack{
-    position:fixed; left:16px; right:16px; bottom:calc(96px + env(safe-area-inset-bottom));
-    z-index:30; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none;
-  }
-  .toast{
-    max-width:400px; background:var(--surface); border:1px solid var(--border); color:var(--text);
-    font-size:13px; font-weight:600; padding:12px 18px; border-radius:999px;
-    box-shadow:0 10px 24px rgba(0,0,0,.35);
-    -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px);
-    opacity:0; transform:translateY(10px) scale(.96);
-    animation:toast-in .22s ease forwards, toast-out .22s ease forwards 2.1s;
-  }
-  .toast.err{border-color:var(--warn); color:var(--warn);}
-  @keyframes toast-in{ to{opacity:1; transform:translateY(0) scale(1);} }
-  @keyframes toast-out{ to{opacity:0; transform:translateY(-6px) scale(.98);} }
-
-  /* ---- skeleton loading ---- */
-  .skel{position:relative; overflow:hidden; color:transparent !important; pointer-events:none;}
-  .skel *{visibility:hidden;}
-  .skel::after{
-    content:""; position:absolute; inset:0; border-radius:inherit;
-    background:linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
-    background-size:200% 100%; animation:skel-sweep 1.3s ease-in-out infinite;
-  }
-  @keyframes skel-sweep{
-    0%{background-position:150% 0;} 100%{background-position:-50% 0;}
-  }
-</style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
@@ -333,6 +15,9 @@
     <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="18" xChannelSelector="R" yChannelSelector="G"/>
   </filter>
 </svg>
+
+<div class="wallpaper wp-none" id="wallpaperLayer"></div>
+
 <div class="app" id="app">
 
   <header class="topbar">
@@ -369,7 +54,7 @@
 
       <div class="card">
         <div class="row">
-          <div class="row-icon icon-purple"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
           <div class="row-text">
             <div class="label">Smooth Touch</div>
             <div class="sub">System animation speed — userspace, no kernel dependency.</div>
@@ -391,7 +76,7 @@
       <div class="card">
         <div class="eyebrow">/sys/devices/platform/goodix_ts.0/switch_report_rate</div>
         <div class="row">
-          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
           <div class="row-text">
             <div class="label">Boosted report rate</div>
             <div class="sub">Stock rate is used when off.</div>
@@ -404,7 +89,7 @@
       <div class="card">
         <div class="eyebrow">com.miui.powerkeeper<wbr>/.statemachine<wbr>.PowerStateMachineService</div>
         <div class="row">
-          <div class="row-icon icon-purple"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
           <div class="row-text">
             <div class="label">Disable PowerKeeper throttling</div>
             <div class="sub">No-ops safely on non-HyperOS ROMs.</div>
@@ -415,7 +100,7 @@
       <div class="card">
         <div class="eyebrow">/sys/class/power_supply/bms/temp</div>
         <div class="row">
-          <div class="row-icon icon-orange"><svg viewBox="0 0 24 24"><path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/></svg></div>
           <div class="row-text">
             <div class="label">Battery temp override</div>
             <div class="sub warn">Hides real overheating from the system — leave off unless you know what you're doing.</div>
@@ -427,7 +112,7 @@
       <div class="section-title">Smooth Touch</div>
       <div class="card">
         <div class="row">
-          <div class="row-icon icon-green"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
           <div class="row-text">
             <div class="label">Animation scale</div>
             <div class="sub">Userspace only — works even where kernel touch tuning can't.</div>
@@ -443,17 +128,17 @@
       <div class="section-title">Touch tuning</div>
       <div class="card disabled">
         <div class="row">
-          <div class="row-icon icon-pink"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg></div>
           <div class="row-text"><div class="label">Sensitivity</div><div class="sub">Not calibrated for this kernel build yet.</div></div>
           <div class="locked-tag">pending</div>
         </div>
         <div class="row">
-          <div class="row-icon icon-pink"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></div>
           <div class="row-text"><div class="label">Edge / glove mode</div><div class="sub">Not calibrated for this kernel build yet.</div></div>
           <div class="locked-tag">pending</div>
         </div>
         <div class="row">
-          <div class="row-icon icon-pink"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11"/></svg></div>
           <div class="row-text"><div class="label">Palm rejection</div><div class="sub">Not calibrated for this kernel build yet.</div></div>
           <div class="locked-tag">pending</div>
         </div>
@@ -467,7 +152,7 @@
       <div class="section-title">Telegram scroll lag</div>
       <div class="card">
         <div class="row">
-          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
           <div class="row-text">
             <div class="label">TG Lag Fix</div>
             <div class="sub">Experimental — exempts Telegram from Doze/background limits. Reported HyperOS scroll stutter may have other causes; this addresses the one safe userspace lever available.</div>
@@ -500,13 +185,66 @@
       <div class="card">
         <div class="row">
           <div class="row-text">
-            <div class="label">UI style</div>
-            <div class="sub">Switches instantly, saved for next time you open this.</div>
+            <div class="label">Mode</div>
+            <div class="sub">System follows your device's dark/light setting live.</div>
           </div>
         </div>
-        <div class="segmented" id="segTheme">
-          <button class="seg-btn" data-val="material">Material</button>
-          <button class="seg-btn" data-val="miui">MIUI</button>
+        <div class="segmented" id="segMode">
+          <button class="seg-btn" data-val="system">System</button>
+          <button class="seg-btn" data-val="dark">Dark</button>
+          <button class="seg-btn" data-val="light">Light</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="row-text">
+            <div class="label">Accent</div>
+            <div class="sub">Monet pulls today's Material You color from your wallpaper. Falls back to the default if it's unavailable on your ROM.</div>
+          </div>
+        </div>
+        <div class="segmented" id="segAccent">
+          <button class="seg-btn" data-val="fixed">Default</button>
+          <button class="seg-btn" data-val="monet">Monet</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row">
+          <div class="row-text">
+            <div class="label">Wallpaper</div>
+            <div class="sub">Behind the glass surfaces.</div>
+          </div>
+        </div>
+        <div class="wallpaper-picker">
+          <div class="wallpaper-item">
+            <div class="wallpaper-swatch" data-val="none">None</div>
+          </div>
+          <div class="wallpaper-item">
+            <div class="wallpaper-swatch" data-val="signal"><div class="wallpaper wp-signal"></div></div>
+            <span class="wallpaper-swatch-label">Signal</span>
+          </div>
+          <div class="wallpaper-item">
+            <div class="wallpaper-swatch" data-val="aurora"><div class="wallpaper wp-aurora"></div></div>
+            <span class="wallpaper-swatch-label">Aurora</span>
+          </div>
+          <div class="wallpaper-item">
+            <div class="wallpaper-swatch" data-val="grid"><div class="wallpaper wp-grid"></div></div>
+            <span class="wallpaper-swatch-label">Grid</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Motion</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-text">
+            <div class="label">Animations</div>
+            <div class="sub">Interface motion only — not the device-level Smooth Touch tweak.</div>
+          </div>
+        </div>
+        <div class="segmented" id="segAnim">
+          <button class="seg-btn" data-val="full">Full</button>
+          <button class="seg-btn" data-val="reduced">Reduced</button>
+          <button class="seg-btn" data-val="off">Off</button>
         </div>
       </div>
 
@@ -535,21 +273,17 @@
   </main>
 
   <nav class="navbar">
-    <button class="navitem active" data-page="home">
-      <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span>
-      Home
+    <button class="navitem active" data-page="home" aria-label="Home">
+      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
     </button>
-    <button class="navitem" data-page="tweaks">
-      <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M20 18h0"/><circle cx="12" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
-      Tweaks
+    <button class="navitem" data-page="tweaks" aria-label="Tweaks">
+      <svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M20 18h0"/><circle cx="12" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
     </button>
-    <button class="navitem" data-page="apps">
-      <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
-      Apps
+    <button class="navitem" data-page="apps" aria-label="Apps">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     </button>
-    <button class="navitem" data-page="settings">
-      <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09A1.7 1.7 0 009 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg></span>
-      Settings
+    <button class="navitem" data-page="settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09A1.7 1.7 0 009 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>
     </button>
   </nav>
 
@@ -567,351 +301,6 @@
   </div>
 </div>
 
-<script>
-(function(){
-  "use strict";
-  var MODDIR = "/data/adb/modules/hypertouch";
-  var CONF = MODDIR + "/settings.conf";
-  var cbSeq = 0;
-
-  function ksuExec(cmd){
-    return new Promise(function(resolve){
-      if (!window.ksu || typeof window.ksu.exec !== "function"){
-        resolve({errno:-1, stdout:"", stderr:"ksu bridge unavailable"});
-        return;
-      }
-      var name = "__ht_cb_" + (cbSeq++);
-      window[name] = function(code, stdout, stderr){
-        delete window[name];
-        resolve({errno:code, stdout:stdout || "", stderr:stderr || ""});
-      };
-      try { window.ksu.exec(cmd, name); }
-      catch(e){ delete window[name]; resolve({errno:-1, stdout:"", stderr:String(e)}); }
-    });
-  }
-
-  var state = {
-    REPORT_RATE_MODE:"1", DISABLE_POWERKEEPER:"1", SPOOF_BATTERY_TEMP:"0",
-    TOUCH_SENSITIVITY_PATH:"", TOUCH_SENSITIVITY_VALUE:"",
-    TOUCH_EDGE_PATH:"", TOUCH_EDGE_VALUE:"",
-    PALM_REJECT_PATH:"", PALM_REJECT_VALUE:"",
-    SMOOTH_TOUCH_MODE:"1", PRIORITY_APPS:"", TG_LAG_FIX:"0",
-    UI_STYLE:"material", CONF_VERSION:"2"
-  };
-
-  var appEl = document.getElementById("app");
-  var liveDot = document.getElementById("liveDot");
-  var pageTitle = document.getElementById("pageTitle");
-  var pageSub = document.getElementById("pageSub");
-  var topbarEl = document.querySelector("header.topbar");
-
-  var heroReportRate = document.getElementById("heroReportRate");
-  var heroReportRateStatus = document.getElementById("heroReportRateStatus");
-  var statProfile = document.getElementById("statProfile");
-  var statSmooth = document.getElementById("statSmooth");
-  var reportRateSwitches = [document.getElementById("swReportRate2")];
-  var swPowerkeeper = document.getElementById("swPowerkeeper");
-  var swBatterySpoof = document.getElementById("swBatterySpoof");
-  var swTgFix = document.getElementById("swTgFix");
-  var smoothSegs = [document.getElementById("segSmoothHome"), document.getElementById("segSmoothTweaks")];
-  var segTheme = document.getElementById("segTheme");
-  var chipList = document.getElementById("chipList");
-  var pkgInput = document.getElementById("pkgInput");
-  var smoothLabels = {"0":"Stock", "1":"Fast", "2":"Instant"};
-
-  var titles = {
-    home:["Home", null],
-    tweaks:["Tweaks", "All device tweaks"],
-    apps:["Apps", "Per-app background priority"],
-    settings:["Settings", "Appearance & module info"]
-  };
-
-  function switchPage(name){
-    document.querySelectorAll(".page").forEach(function(p){ p.hidden = (p.id !== "page-" + name); });
-    document.querySelectorAll(".navitem").forEach(function(b){ b.classList.toggle("active", b.dataset.page === name); });
-    pageTitle.textContent = titles[name][0];
-    var sub = titles[name][1];
-    var subText = document.getElementById("pageSubText");
-    var subDevice = document.getElementById("pageSubDevice");
-    if (sub){
-      subText.textContent = sub;
-      subText.hidden = false;
-      subDevice.hidden = true;
-    } else {
-      subText.hidden = true;
-      subDevice.hidden = false;
-    }
-    window.scrollTo(0, 0);
-    topbarEl.classList.remove("compact");
-  }
-  document.querySelectorAll(".navitem").forEach(function(b){
-    b.addEventListener("click", function(){ switchPage(b.dataset.page); });
-  });
-
-  window.addEventListener("scroll", function(){
-    topbarEl.classList.toggle("compact", window.scrollY > 28);
-  }, {passive:true});
-
-  function render(){
-    reportRateSwitches.forEach(function(el){ el.classList.toggle("on", state.REPORT_RATE_MODE === "1"); });
-    swPowerkeeper.classList.toggle("on", state.DISABLE_POWERKEEPER === "1");
-    swBatterySpoof.classList.toggle("on", state.SPOOF_BATTERY_TEMP === "1");
-    swTgFix.classList.toggle("on", state.TG_LAG_FIX === "1");
-
-    var boosted = state.REPORT_RATE_MODE === "1";
-    heroReportRate.classList.toggle("on", boosted);
-    heroReportRateStatus.textContent = boosted ? "Boosted" : "Stock";
-    statSmooth.textContent = smoothLabels[state.SMOOTH_TOUCH_MODE] || "Fast";
-
-    smoothSegs.forEach(function(seg){
-      seg.querySelectorAll(".seg-btn").forEach(function(b){
-        b.classList.toggle("active", b.dataset.val === state.SMOOTH_TOUCH_MODE);
-      });
-    });
-    segTheme.querySelectorAll(".seg-btn").forEach(function(b){
-      b.classList.toggle("active", b.dataset.val === state.UI_STYLE);
-    });
-    document.documentElement.dataset.theme = state.UI_STYLE;
-
-    chipList.innerHTML = "";
-    state.PRIORITY_APPS.split(" ").filter(Boolean).forEach(function(pkg){
-      var chip = document.createElement("div");
-      chip.className = "chip";
-      var span = document.createElement("span");
-      span.textContent = pkg;
-      var btn = document.createElement("button");
-      btn.textContent = "×";
-      btn.addEventListener("click", function(){
-        state.PRIORITY_APPS = state.PRIORITY_APPS.split(" ").filter(function(p){ return p && p !== pkg; }).join(" ");
-        render();
-        applyNow(false);
-      });
-      chip.appendChild(span); chip.appendChild(btn);
-      chipList.appendChild(chip);
-    });
-  }
-
-  heroReportRate.addEventListener("click", function(){
-    state.REPORT_RATE_MODE = state.REPORT_RATE_MODE === "1" ? "0" : "1";
-    render(); applyNow(false);
-  });
-
-
-  reportRateSwitches.forEach(function(el){
-    el.addEventListener("click", function(){
-      state.REPORT_RATE_MODE = state.REPORT_RATE_MODE === "1" ? "0" : "1";
-      render(); applyNow(false);
-    });
-  });
-  swPowerkeeper.addEventListener("click", function(){
-    state.DISABLE_POWERKEEPER = state.DISABLE_POWERKEEPER === "1" ? "0" : "1";
-    render(); applyNow(false);
-  });
-  swBatterySpoof.addEventListener("click", function(){
-    state.SPOOF_BATTERY_TEMP = state.SPOOF_BATTERY_TEMP === "1" ? "0" : "1";
-    render(); applyNow(false);
-  });
-  swTgFix.addEventListener("click", function(){
-    state.TG_LAG_FIX = state.TG_LAG_FIX === "1" ? "0" : "1";
-    render(); applyNow(false);
-  });
-  smoothSegs.forEach(function(seg){
-    seg.addEventListener("click", function(e){
-      var b = e.target.closest(".seg-btn");
-      if (!b) return;
-      state.SMOOTH_TOUCH_MODE = b.dataset.val;
-      render(); applyNow(false);
-    });
-  });
-  segTheme.addEventListener("click", function(e){
-    var b = e.target.closest(".seg-btn");
-    if (!b) return;
-    state.UI_STYLE = b.dataset.val;
-    render(); applyNow(false);
-  });
-  pkgInput.addEventListener("keydown", function(e){ if (e.key === "Enter") document.getElementById("pkgAdd").click(); });
-  document.getElementById("pkgAdd").addEventListener("click", function(){
-    var v = pkgInput.value.trim();
-    if (!v) return;
-    var current = state.PRIORITY_APPS.split(" ").filter(Boolean);
-    if (current.indexOf(v) === -1) current.push(v);
-    state.PRIORITY_APPS = current.join(" ");
-    pkgInput.value = "";
-    render(); applyNow(false);
-  });
-
-  function parseConf(text){
-    var out = {};
-    text.split("\n").forEach(function(line){
-      line = line.trim();
-      if (!line || line[0] === "#") return;
-      var i = line.indexOf("=");
-      if (i < 0) return;
-      out[line.slice(0,i).trim()] = line.slice(i+1).trim();
-    });
-    return out;
-  }
-
-  function renderConf(){
-    return [
-      "# HyperTouch settings.",
-      "# Edit from the WebUI (recommended), or by hand — most changes apply",
-      "# immediately via \"Apply now\" / the Action button, no reboot needed.",
-      "",
-      "# ── Sampling ──────────────────────────────────────────────",
-      "REPORT_RATE_MODE=" + state.REPORT_RATE_MODE,
-      "",
-      "# ── System ────────────────────────────────────────────────",
-      "DISABLE_POWERKEEPER=" + state.DISABLE_POWERKEEPER,
-      "SPOOF_BATTERY_TEMP=" + state.SPOOF_BATTERY_TEMP,
-      "",
-      "# ── Touch tuning (kernel-dependent, pending device data) ───",
-      "TOUCH_SENSITIVITY_PATH=" + state.TOUCH_SENSITIVITY_PATH,
-      "TOUCH_SENSITIVITY_VALUE=" + state.TOUCH_SENSITIVITY_VALUE,
-      "TOUCH_EDGE_PATH=" + state.TOUCH_EDGE_PATH,
-      "TOUCH_EDGE_VALUE=" + state.TOUCH_EDGE_VALUE,
-      "PALM_REJECT_PATH=" + state.PALM_REJECT_PATH,
-      "PALM_REJECT_VALUE=" + state.PALM_REJECT_VALUE,
-      "",
-      "# ── Smooth Touch (userspace, kernel-independent) ────────────",
-      "SMOOTH_TOUCH_MODE=" + state.SMOOTH_TOUCH_MODE,
-      "",
-      "# ── Priority Apps (userspace, kernel-independent) ───────────",
-      "PRIORITY_APPS=" + state.PRIORITY_APPS,
-      "TG_LAG_FIX=" + state.TG_LAG_FIX,
-      "",
-      "# ── WebUI ─────────────────────────────────────────────────",
-      "UI_STYLE=" + state.UI_STYLE,
-      "",
-      "# ── Internal — do not edit ───────────────────────────────────",
-      "CONF_VERSION=" + state.CONF_VERSION
-    ].join("\n");
-  }
-
-  function setStatus(msg, isErr){
-    ["status","statusTweaks","statusApps","statusSettings"].forEach(function(id){
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.textContent = msg;
-      el.classList.toggle("err", !!isErr);
-    });
-  }
-
-  var toastStack = document.getElementById("toastStack");
-  function showToast(msg, isErr){
-    var t = document.createElement("div");
-    t.className = "toast" + (isErr ? " err" : "");
-    t.textContent = msg;
-    toastStack.appendChild(t);
-    setTimeout(function(){ t.remove(); }, 2400);
-  }
-
-  async function loadDevice(){
-    var r = await ksuExec("getprop ro.product.model; getprop ro.product.device");
-    var lines = r.stdout.split("\n").filter(Boolean);
-    if (lines[0]) document.getElementById("devModel").textContent = lines[0].trim();
-    if (lines[1]) document.getElementById("devCode").textContent = lines[1].trim();
-    if (lines[1]) document.getElementById("mDevice").textContent = lines[1].trim();
-    if (r.errno === 0) liveDot.classList.add("live");
-
-    var deviceCode = (lines[1] || "").trim();
-    var profile = deviceCode === "duchamp" ? "confirmed" : "experimental";
-    document.getElementById("mProfile").textContent = profile;
-    statProfile.textContent = profile === "confirmed" ? "Confirmed" : "Experimental";
-  }
-
-  async function loadModuleProp(){
-    var r = await ksuExec("cat " + MODDIR + "/module.prop");
-    if (r.errno !== 0 || !r.stdout) return;
-    var p = parseConf(r.stdout);
-    if (p.version) document.getElementById("mVersion").textContent = p.version;
-    if (p.author) document.getElementById("mAuthor").textContent = p.author;
-  }
-
-  async function loadConf(){
-    var r = await ksuExec("cat " + CONF);
-    if (r.errno === 0 && r.stdout){
-      var parsed = parseConf(r.stdout);
-      Object.keys(parsed).forEach(function(k){ if (k in state) state[k] = parsed[k]; });
-      render();
-      setStatus("Settings loaded.");
-    } else {
-      render();
-      setStatus(window.ksu ? "Could not read settings.conf — using defaults." : "Open this from your root manager to enable controls.", true);
-    }
-  }
-
-  async function saveConf(){
-    var cmd = "cat > '" + CONF + "' << 'HT_EOF'\n" + renderConf() + "\nHT_EOF";
-    return ksuExec(cmd);
-  }
-
-  async function applyNow(showBusy){
-    var btns = [document.getElementById("applyBtn"), document.getElementById("applyBtnTweaks"), document.getElementById("applyBtnApps")];
-    if (showBusy) btns.forEach(function(b){ if(b){ b.disabled = true; b.textContent = "Applying…"; } });
-    await saveConf();
-    var r = await ksuExec("sh " + MODDIR + "/apply.sh 2>&1");
-    if (showBusy) btns.forEach(function(b){ if(b){ b.disabled = false; b.textContent = "Apply now"; } });
-    if (r.errno === 0){
-      setStatus("Applied at " + new Date().toLocaleTimeString() + ".");
-      if (showBusy) showToast("Applied");
-    } else {
-      setStatus("apply.sh exited " + r.errno + (r.stdout ? "\n" + r.stdout : ""), true);
-      if (showBusy) showToast("Apply failed", true);
-    }
-    return r;
-  }
-
-  ["applyBtn","applyBtnTweaks","applyBtnApps"].forEach(function(id){
-    var b = document.getElementById(id);
-    if (b) b.addEventListener("click", function(){ applyNow(true); });
-  });
-
-  // ---- dialogs ----
-  var overlay = document.getElementById("overlay");
-  function showDialog(title, body, onConfirm){
-    document.getElementById("dlgTitle").textContent = title;
-    document.getElementById("dlgBody").textContent = body;
-    overlay.hidden = false;
-    var confirmBtn = document.getElementById("dlgConfirm");
-    var cancelBtn = document.getElementById("dlgCancel");
-    function cleanup(){ overlay.hidden = true; confirmBtn.removeEventListener("click", onOk); cancelBtn.removeEventListener("click", onCancel); }
-    function onOk(){ cleanup(); onConfirm(); }
-    function onCancel(){ cleanup(); }
-    confirmBtn.addEventListener("click", onOk);
-    cancelBtn.addEventListener("click", onCancel);
-  }
-
-  document.getElementById("resetBtn").addEventListener("click", function(){
-    showDialog("Reset to defaults?", "This restores settings.conf to the shipped defaults and re-applies. Cannot be undone from here.", async function(){
-      setStatus("Resetting…");
-      var r = await ksuExec("sh " + MODDIR + "/action.sh reset 2>&1");
-      setStatus(r.stdout || (r.errno === 0 ? "Reset." : "Reset failed."), r.errno !== 0);
-      showToast(r.errno === 0 ? "Reset to defaults" : "Reset failed", r.errno !== 0);
-      loadConf();
-    });
-  });
-  document.getElementById("revertBtn").addEventListener("click", function(){
-    showDialog("Revert now?", "Temporarily undoes tweaks for this session without changing your saved settings.conf.", async function(){
-      setStatus("Reverting…");
-      var r = await ksuExec("sh " + MODDIR + "/action.sh revert 2>&1");
-      setStatus(r.stdout || (r.errno === 0 ? "Reverted." : "Revert failed."), r.errno !== 0);
-      showToast(r.errno === 0 ? "Reverted" : "Revert failed", r.errno !== 0);
-    });
-  });
-  document.getElementById("githubBtn").addEventListener("click", function(){
-    ksuExec("am start -a android.intent.action.VIEW -d 'https://github.com/sandtomatowich-hubexe/HyperTouch' >/dev/null 2>&1");
-  });
-  document.getElementById("probeInfoBtn").addEventListener("click", function(){
-    showDialog("Unlocking touch tuning", "Run tools/probe_touch.sh as root (adb shell su -c \"sh /sdcard/probe_touch.sh\"). It only reads sysfs, never writes. Share the output on GitHub and the real sensitivity/edge/palm-reject nodes get wired in.", function(){});
-  });
-
-  render();
-  Promise.all([loadDevice(), loadConf(), loadModuleProp()]).then(function(){
-    document.querySelectorAll(".skel").forEach(function(el){ el.classList.remove("skel"); });
-  });
-})();
-</script>
+<script src="app.js"></script>
 </body>
-  </html>
-  
+</html>
