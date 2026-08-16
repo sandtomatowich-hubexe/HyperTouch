@@ -3,11 +3,11 @@
 # Android 15+
 #########################################
 
-# HWUI
-debug.hwui.use_hint_manager=true
-persist.sys.ui.hw=1
-debug.egl.hw=1
-video.accelerate.hw=1
+# HWUI (disabled temporary)
+#debug.hwui.use_hint_manager=true
+#persist.sys.ui.hw=1
+#debug.egl.hw=1
+#video.accelerate.hw=1
 
 # SurfaceFlinger
 debug.sf.enable_hwc_vds=1
