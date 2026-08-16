@@ -5,3 +5,4 @@ versionCode=210
 author=Sep
 description=Touch + performance tuning for Poco X6 Pro 5G / Redmi K70E (duchamp). Report-rate boost, Smooth Touch, Priority Apps, PowerKeeper bypass, device-profile framework, and a dark/light/Monet WebUI.
 updateJson=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/update.json
+banner=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/assets/banner.png
