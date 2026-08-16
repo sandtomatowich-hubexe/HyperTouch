@@ -98,6 +98,10 @@ adb shell su -c "sh /sdcard/probe_touch.sh"  > probe_touch.txt
 adb shell su -c "sh /sdcard/probe_device.sh" > probe_device.txt
 ```
 
+## Upcoming Device Support
+Based on our latest testing, support for additional devices featuring MediaTek and Qualcomm Snapdragon SoCs is coming soon.
+Compatibility is currently being tested and optimized to ensure a stable experience across a wider range of devices.
+
 ## Credits
 
 Built by Sep.
