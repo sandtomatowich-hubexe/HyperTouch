@@ -1,113 +1,58 @@
 #!/system/bin/sh
 
-# ==========================================================
-# HyperTouch
-# Advanced Touch Optimization Framework
-# Target: duchamp
-# Author: Sep @C0RS0N
-# ==========================================================
+# --- UI banner ---
+ui_print "————————————————————————————————"
+ui_print "  HyperTouch — duchamp touch tuning"
+ui_print "  by Sep"
+ui_print "————————————————————————————————"
 
-ui_print " "
-ui_print "╔════════════════════════════════╗"
-ui_print "║          HyperTouch             ║"
-ui_print "║     Touch Optimization Engine   ║"
-ui_print "║            By Sep             ║"
-ui_print "╚════════════════════════════════╝"
-ui_print " "
-
-# Device information
 MODEL=$(getprop ro.product.model)
-DEVICE=$(getprop ro.product.device)
-BRAND=$(getprop ro.product.brand)
-ANDROID=$(getprop ro.build.version.release)
-KERNEL=$(uname -r)
+CODENAME=$(getprop ro.product.device)
+ANDROID_VER=$(getprop ro.build.version.release)
+OS_VER=$(getprop ro.mi.os.version.name)
+[ -z "$OS_VER" ] && OS_VER=$(getprop ro.miui.ui.version.name)
+KERNEL_VER=$(uname -r)
 
-UI=$(getprop ro.mi.os.version.name)
-[ -z "$UI" ] && UI=$(getprop ro.miui.ui.version.name)
+ui_print " Device   : $MODEL ($CODENAME)"
+ui_print " Android  : $ANDROID_VER"
+ui_print " OS/UI    : $OS_VER"
+ui_print " Kernel   : $KERNEL_VER"
+ui_print "————————————————————————————————"
 
-ui_print "┌─ Device Environment"
-ui_print "│ Brand     : $BRAND"
-ui_print "│ Model     : $MODEL"
-ui_print "│ Codename  : $DEVICE"
-ui_print "│ Android   : $ANDROID"
-ui_print "│ UI        : $UI"
-ui_print "│ Kernel    : $KERNEL"
-ui_print "└──────────────────────────────"
-ui_print " "
-
-# Compatibility
-
-if [ "$DEVICE" = "duchamp" ]; then
-    ui_print "[✓] Target device verified"
+if [ "$CODENAME" = "duchamp" ]; then
+  ui_print " Device profile: confirmed — full tweak set enabled."
 else
-    ui_print "[!] Unknown device detected"
-    ui_print "    HyperTouch was designed for duchamp"
-    ui_print "    Continuing with compatibility mode"
+  ui_print " Device profile: experimental (no confirmed profile"
+  ui_print " for '$CODENAME' yet). Kernel-independent features"
+  ui_print " (Smooth Touch, Priority Apps, PowerKeeper) still work;"
+  ui_print " hardware-specific tweaks are skipped unless you set"
+  ui_print " FORCE_EXPERIMENTAL=1 in settings.conf. See README."
+fi
+ui_print "————————————————————————————————"
+
+ui_print " Installing..."
+
+# Preserve settings across updates: install_module extracts into a
+# fresh staging path, so the currently-live module (if any) is still
+# readable here — carry its settings.conf forward instead of
+# resetting the user back to shipped defaults on every update.
+LIVE_CONF="/data/adb/modules/hypertouch/settings.conf"
+if [ -f "$LIVE_CONF" ] && [ "$LIVE_CONF" != "$MODPATH/settings.conf" ]; then
+  ui_print " Existing install found — keeping your saved settings."
+  cp "$LIVE_CONF" "$MODPATH/settings.conf"
+else
+  ui_print " Fresh install — using default settings."
 fi
 
-ui_print " "
+# post-fs-data.sh / service.sh / system.prop / uninstall.sh get their
+# permissions and SELinux context set automatically by install_module.
+# action.sh, apply.sh, and probe_touch.sh aren't "known" filenames to
+# Magisk/KernelSU, so they need it set explicitly.
+set_perm "$MODPATH/action.sh" 0 0 0755
+set_perm "$MODPATH/apply.sh" 0 0 0755
+set_perm "$MODPATH/tools/probe_touch.sh" 0 0 0755
+set_perm "$MODPATH/tools/probe_device.sh" 0 0 0755
 
-# Root manager detection
-
-if [ -d "/data/adb/ksu" ]; then
-    ROOT="KernelSU"
-elif [ -d "/data/adb/magisk" ]; then
-    ROOT="Magisk"
-else
-    ROOT="Unknown"
-fi
-
-ui_print "[✓] Root environment : $ROOT"
-
-ui_print " "
-ui_print " Installing components..."
-ui_print " "
-
-# Permission setup
-
-FILES="
-$MODPATH/action.sh
-$MODPATH/apply.sh
-$MODPATH/tools/probe_touch.sh
-"
-
-for file in $FILES; do
-    if [ -f "$file" ]; then
-        set_perm "$file" 0 0 0755
-        ui_print "[✓] Secured $(basename $file)"
-    else
-        ui_print "[!] Missing $(basename $file)"
-    fi
-done
-
-ui_print " "
-
-# Safety preparation
-
-mkdir -p "$MODPATH/logs"
-mkdir -p "$MODPATH/backup"
-
-ui_print "[✓] Safety environment initialized"
-ui_print "[✓] Backup directory prepared"
-
-ui_print " "
-
-# Final
-
-ui_print "╔════════════════════════════════╗"
-ui_print "║        Installation Done        ║"
-ui_print "╚════════════════════════════════╝"
-
-ui_print " "
-ui_print " HyperTouch is ready."
-ui_print " "
-ui_print " Recommended:"
-ui_print " • Reboot for full activation"
-ui_print " • Use WebUI for live tuning"
-ui_print " • Use Action button for reload"
-ui_print " "
-
-ui_print "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-ui_print "        Safe • Clean • Tuned"
-ui_print "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-ui_print " "
+ui_print " Done. Reboot to apply, or use the WebUI / Action"
+ui_print " button afterwards to re-apply without rebooting."
+ui_print "————————————————————————————————"
