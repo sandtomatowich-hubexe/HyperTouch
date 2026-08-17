@@ -3,7 +3,7 @@
 Touch response and system responsiveness tuning for **Poco X6 Pro 5G / Redmi K70E (duchamp)**, built without requiring kernel modifications — everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
 
 Works with **Magisk**, **KernelSU**, **KernelSU-Next**, and **SukiSU Ultra** and all included forks.
-WebUI needs one of the KernelSU-family managers (or a standalone viewer like KsuWebUIStandalone/MMRL) — plain Magisk manager doesn't render WebUIs , useless you use **KSU WebUI**.
+WebUI needs one of the KernelSU-family managers (or a standalone viewer like KsuWebUIStandalone/MMRL) — plain Magisk manager doesn't render WebUIs , unless you use **KSU WebUI**.
 
 ## Features
 
