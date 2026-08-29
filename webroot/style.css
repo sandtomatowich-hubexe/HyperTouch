@@ -34,6 +34,13 @@ html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
   mask-image: radial-gradient(circle at 50% 0%, black, transparent 75%);
   opacity:.6;
 }
+.wallpaper.wp-pulse{
+  background: repeating-radial-gradient(circle at 50% 38%,
+    color-mix(in srgb, var(--accent) 20%, transparent) 0,
+    color-mix(in srgb, var(--accent) 20%, transparent) 2px,
+    transparent 2px,
+    transparent 46px);
+}
 
 /* Glass surfaces: only pay the blur cost when a wallpaper is actually
    on screen behind them — flat backgrounds don't need it. */
@@ -108,6 +115,14 @@ header.topbar.compact .page-sub{opacity:0; height:0; margin:0; overflow:hidden;}
 /* ---- main / pages ---- */
 main{flex:1; padding:16px 16px calc(112px + env(safe-area-inset-bottom));}
 .page[hidden]{display:none;}
+@keyframes page-enter{
+  from{opacity:0; transform:translateY(8px);}
+  to{opacity:1; transform:translateY(0);}
+}
+.page:not([hidden]){
+  animation:page-enter var(--dur-slow) cubic-bezier(.22,.9,.32,1);
+}
+.card:active, .stat-card:active{transform:scale(.985); transition:transform var(--dur-fast) ease;}
 .section-title{
   font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
   color:var(--text-faint); margin:20px 2px 8px;

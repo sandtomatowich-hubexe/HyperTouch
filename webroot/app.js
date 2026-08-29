@@ -35,15 +35,14 @@
   }
 
   // ============================================================
-  // Device-tweak state (settings.conf) — unchanged from before.
+  // Device-tweak state (settings.conf).
   // ============================================================
   var state = {
     REPORT_RATE_MODE:"1", DISABLE_POWERKEEPER:"1", SPOOF_BATTERY_TEMP:"0",
-    TOUCH_SENSITIVITY_PATH:"", TOUCH_SENSITIVITY_VALUE:"",
-    TOUCH_EDGE_PATH:"", TOUCH_EDGE_VALUE:"",
-    PALM_REJECT_PATH:"", PALM_REJECT_VALUE:"",
-    SMOOTH_TOUCH_MODE:"1", PRIORITY_APPS:"", TG_LAG_FIX:"0",
-    CONF_VERSION:"2"
+    FAST_CPU_RESPONSE:"1", GPU_FLOOR:"0",
+    SMOOTH_TOUCH_MODE:"1", DISABLE_MIUI_OPT:"0", PARALLEL_ANIM:"0",
+    PRIORITY_APPS:"", TG_LAG_FIX:"0",
+    CONF_VERSION:"3"
   };
 
   // ============================================================
@@ -134,7 +133,8 @@
   }
 
   async function saveUiConf(){
-    var cmd = "mkdir -p " + MODDIR + "/webui 2>/dev/null; cat > '" + UICONF + "' << 'HT_EOF'\n" + renderUiConf() + "\nHT_EOF";
+    var tmp = UICONF + ".tmp";
+    var cmd = "mkdir -p " + MODDIR + "/webui 2>/dev/null; cat > '" + tmp + "' << 'HT_EOF'\n" + renderUiConf() + "\nHT_EOF\nmv -f '" + tmp + "' '" + UICONF + "'";
     return ksuExec(cmd);
   }
 
@@ -162,16 +162,18 @@
       "DISABLE_POWERKEEPER=" + state.DISABLE_POWERKEEPER,
       "SPOOF_BATTERY_TEMP=" + state.SPOOF_BATTERY_TEMP,
       "",
-      "# ── Touch tuning (kernel-dependent, pending device data) ───",
-      "TOUCH_SENSITIVITY_PATH=" + state.TOUCH_SENSITIVITY_PATH,
-      "TOUCH_SENSITIVITY_VALUE=" + state.TOUCH_SENSITIVITY_VALUE,
-      "TOUCH_EDGE_PATH=" + state.TOUCH_EDGE_PATH,
-      "TOUCH_EDGE_VALUE=" + state.TOUCH_EDGE_VALUE,
-      "PALM_REJECT_PATH=" + state.PALM_REJECT_PATH,
-      "PALM_REJECT_VALUE=" + state.PALM_REJECT_VALUE,
+      "# ── Duchamp Tuning (confirmed / named-experimental devices only) ──",
+      "FAST_CPU_RESPONSE=" + state.FAST_CPU_RESPONSE,
+      "GPU_FLOOR=" + state.GPU_FLOOR,
       "",
       "# ── Smooth Touch (userspace, kernel-independent) ────────────",
       "SMOOTH_TOUCH_MODE=" + state.SMOOTH_TOUCH_MODE,
+      "",
+      "# ── MIUI Optimization (experimental, may need a reboot) ─────",
+      "DISABLE_MIUI_OPT=" + state.DISABLE_MIUI_OPT,
+      "",
+      "# ── Parallel Animation (experimental, may need a reboot) ────",
+      "PARALLEL_ANIM=" + state.PARALLEL_ANIM,
       "",
       "# ── Priority Apps (userspace, kernel-independent) ───────────",
       "PRIORITY_APPS=" + state.PRIORITY_APPS,
@@ -196,7 +198,8 @@
   }
 
   async function saveConf(){
-    var cmd = "cat > '" + CONF + "' << 'HT_EOF'\n" + renderConf() + "\nHT_EOF";
+    var tmp = CONF + ".tmp";
+    var cmd = "cat > '" + tmp + "' << 'HT_EOF'\n" + renderConf() + "\nHT_EOF\nmv -f '" + tmp + "' '" + CONF + "'";
     return ksuExec(cmd);
   }
 
@@ -248,6 +251,10 @@
     els.reportRateSwitches.forEach(function(el){ el.classList.toggle("on", state.REPORT_RATE_MODE === "1"); });
     els.swPowerkeeper.classList.toggle("on", state.DISABLE_POWERKEEPER === "1");
     els.swBatterySpoof.classList.toggle("on", state.SPOOF_BATTERY_TEMP === "1");
+    els.swFastCpu.classList.toggle("on", state.FAST_CPU_RESPONSE === "1");
+    els.swGpuFloor.classList.toggle("on", state.GPU_FLOOR === "1");
+    els.swMiuiOpt.classList.toggle("on", state.DISABLE_MIUI_OPT === "1");
+    els.swParallelAnim.classList.toggle("on", state.PARALLEL_ANIM === "1");
     els.swTgFix.classList.toggle("on", state.TG_LAG_FIX === "1");
 
     var boosted = state.REPORT_RATE_MODE === "1";
@@ -350,9 +357,12 @@
     if (r.errno === 0) els.liveDot.classList.add("live");
 
     var deviceCode = (lines[1] || "").trim();
-    var profile = deviceCode === "duchamp" ? "confirmed" : "experimental";
+    var profile = "experimental";
+    var profileLabel = "Experimental";
+    if (deviceCode === "duchamp"){ profile = "confirmed"; profileLabel = "Confirmed"; }
+    else if (deviceCode === "rodin"){ profile = "experimental-named"; profileLabel = "Experimental (Rodin)"; }
     document.getElementById("mProfile").textContent = profile;
-    els.statProfile.textContent = profile === "confirmed" ? "Confirmed" : "Experimental";
+    els.statProfile.textContent = profileLabel;
   }
 
   async function loadModuleProp(){
@@ -379,6 +389,10 @@
     els.reportRateSwitches = [document.getElementById("swReportRate2")];
     els.swPowerkeeper = document.getElementById("swPowerkeeper");
     els.swBatterySpoof = document.getElementById("swBatterySpoof");
+    els.swFastCpu = document.getElementById("swFastCpu");
+    els.swGpuFloor = document.getElementById("swGpuFloor");
+    els.swMiuiOpt = document.getElementById("swMiuiOpt");
+    els.swParallelAnim = document.getElementById("swParallelAnim");
     els.swTgFix = document.getElementById("swTgFix");
     els.smoothSegs = [document.getElementById("segSmoothHome"), document.getElementById("segSmoothTweaks")];
     els.chipList = document.getElementById("chipList");
@@ -410,6 +424,22 @@
     });
     els.swBatterySpoof.addEventListener("click", function(){
       state.SPOOF_BATTERY_TEMP = state.SPOOF_BATTERY_TEMP === "1" ? "0" : "1";
+      render(); applyNow(false);
+    });
+    els.swFastCpu.addEventListener("click", function(){
+      state.FAST_CPU_RESPONSE = state.FAST_CPU_RESPONSE === "1" ? "0" : "1";
+      render(); applyNow(false);
+    });
+    els.swGpuFloor.addEventListener("click", function(){
+      state.GPU_FLOOR = state.GPU_FLOOR === "1" ? "0" : "1";
+      render(); applyNow(false);
+    });
+    els.swMiuiOpt.addEventListener("click", function(){
+      state.DISABLE_MIUI_OPT = state.DISABLE_MIUI_OPT === "1" ? "0" : "1";
+      render(); applyNow(false);
+    });
+    els.swParallelAnim.addEventListener("click", function(){
+      state.PARALLEL_ANIM = state.PARALLEL_ANIM === "1" ? "0" : "1";
       render(); applyNow(false);
     });
     els.swTgFix.addEventListener("click", function(){
@@ -492,4 +522,3 @@
     init();
   }
 })();
- 

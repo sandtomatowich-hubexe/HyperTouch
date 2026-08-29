@@ -10,9 +10,9 @@
 # Usage:
 #   action.sh                     re-apply current settings
 #   action.sh status              show current settings + device profile
-#   action.sh enable <feature>    boost | powerkeeper | battery-spoof | tg-fix
+#   action.sh enable <feature>    boost | powerkeeper | battery-spoof |
+#                                 fast-cpu | gpu-floor | miui-opt | tg-fix
 #   action.sh disable <feature>   (same feature names)
-#   action.sh reset-touch         clear sensitivity/edge/palm-reject values
 #   action.sh reset               restore settings.conf to shipped defaults
 #   action.sh revert              temporarily undo tweaks (settings.conf kept)
 #   action.sh help                show this text
@@ -37,31 +37,43 @@ feature_key() {
         boost|report-rate) echo REPORT_RATE_MODE ;;
         powerkeeper)       echo DISABLE_POWERKEEPER ;;
         battery-spoof)     echo SPOOF_BATTERY_TEMP ;;
+        fast-cpu)          echo FAST_CPU_RESPONSE ;;
+        gpu-floor)         echo GPU_FLOOR ;;
+        miui-opt)          echo DISABLE_MIUI_OPT ;;
         tg-fix)            echo TG_LAG_FIX ;;
         *)                 echo "" ;;
     esac
 }
 
+device_profile() {
+    d=$(getprop ro.product.device)
+    case "$d" in
+        duchamp) echo "confirmed" ;;
+        rodin)   echo "experimental-named" ;;
+        *)       echo "experimental" ;;
+    esac
+}
+
 cmd_status() {
     DEVICE=$(getprop ro.product.device)
-    case "$DEVICE" in duchamp) PROFILE="confirmed" ;; *) PROFILE="experimental" ;; esac
+    PROFILE=$(device_profile)
     echo "HyperTouch status"
     echo "  device         : $DEVICE ($PROFILE profile)"
     echo "  report rate    : $(conf_get REPORT_RATE_MODE)  (0=stock 1=boosted)"
     echo "  powerkeeper    : $(conf_get DISABLE_POWERKEEPER)  (1=disabled/bypassed)"
     echo "  battery spoof  : $(conf_get SPOOF_BATTERY_TEMP)  (0=off, real temp reported)"
+    echo "  fast cpu resp. : $(conf_get FAST_CPU_RESPONSE)"
+    echo "  gpu floor      : $(conf_get GPU_FLOOR)"
     echo "  smooth touch   : $(conf_get SMOOTH_TOUCH_MODE)  (0=stock 1=fast 2=instant)"
+    echo "  miui opt off   : $(conf_get DISABLE_MIUI_OPT)  (experimental)"
     echo "  priority apps  : $(conf_get PRIORITY_APPS)"
     echo "  tg lag fix     : $(conf_get TG_LAG_FIX)  (experimental)"
-    echo "  touch sens.    : $(conf_get TOUCH_SENSITIVITY_PATH)"
-    echo "  touch edge     : $(conf_get TOUCH_EDGE_PATH)"
-    echo "  palm reject    : $(conf_get PALM_REJECT_PATH)"
 }
 
 cmd_enable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, miui-opt, tg-fix"
         exit 1
     fi
     conf_set "$key" 1
@@ -72,19 +84,11 @@ cmd_enable() {
 cmd_disable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, miui-opt, tg-fix"
         exit 1
     fi
     conf_set "$key" 0
     echo "disabled: $1"
-    sh "$MODDIR/apply.sh"
-}
-
-cmd_reset_touch() {
-    for k in TOUCH_SENSITIVITY_PATH TOUCH_SENSITIVITY_VALUE TOUCH_EDGE_PATH TOUCH_EDGE_VALUE PALM_REJECT_PATH PALM_REJECT_VALUE; do
-        conf_set "$k" ""
-    done
-    echo "touch tuning values cleared."
     sh "$MODDIR/apply.sh"
 }
 
@@ -121,14 +125,14 @@ cmd_help() {
     cat << 'EOF'
 HyperTouch management CLI
 
-  action.sh                   re-apply current settings
-  action.sh status             show current settings + device profile
-  action.sh enable <feature>   boost | powerkeeper | battery-spoof | tg-fix
-  action.sh disable <feature>  (same feature names)
-  action.sh reset-touch        clear sensitivity/edge/palm-reject values
-  action.sh reset              restore settings.conf to shipped defaults
-  action.sh revert             temporarily undo tweaks (settings kept)
-  action.sh help                this text
+  action.sh                    re-apply current settings
+  action.sh status              show current settings + device profile
+  action.sh enable <feature>    boost | powerkeeper | battery-spoof |
+                                fast-cpu | gpu-floor | miui-opt | tg-fix
+  action.sh disable <feature>   (same feature names)
+  action.sh reset               restore settings.conf to shipped defaults
+  action.sh revert              temporarily undo tweaks (settings kept)
+  action.sh help                 this text
 EOF
 }
 
@@ -137,7 +141,6 @@ case "$1" in
     status)        cmd_status ;;
     enable)        cmd_enable "$2" ;;
     disable)       cmd_disable "$2" ;;
-    reset-touch)   cmd_reset_touch ;;
     reset)         cmd_reset ;;
     revert)        cmd_revert ;;
     help|--help|-h) cmd_help ;;

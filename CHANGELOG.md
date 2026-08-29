@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.2
+
+- Removed the placeholder touch-tuning nodes (sensitivity/edge/palm-reject) — never got confirmed real paths, so they were dead weight
+- Added real Duchamp Tuning: Fast CPU Response (schedutil rate limits) and GPU Floor (reads actual OPP steps at runtime, not a hardcoded guess)
+- Experimental support for `rodin` (POCO X7 Pro / Redmi Turbo 4) — reuses duchamp's CPU policy layout since both chips share the same 1+3+4 cluster topology; touch/GPU paths unverified
+- Rebuilt TG Lag Fix: the background-exemption-only version was tested and made no real difference, so it now also disables MIUI Optimization (a foreground-focused lever), available standalone too
+- Added experimental Parallel Animation toggle
+- module.prop's description now updates live on every apply — touch mode, refresh rate, kernel version, device profile
+- New wallpaper style: Pulse
+- Page-transition animation and tactile tap feedback on cards
+- Fixed: settings could appear to silently revert after tapping Action — `settings.conf`/`ui.conf` writes are now atomic (temp file + rename), and `apply.sh` now locks against concurrent runs
+
 ## v2.1
 
 **WebUI rebuild.**
@@ -39,4 +51,3 @@
 - Boosted touch report rate toggle
 - PowerKeeper bypass
 - First WebUI control panel
-- 

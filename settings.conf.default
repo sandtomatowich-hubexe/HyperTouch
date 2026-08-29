@@ -16,36 +16,42 @@ DISABLE_POWERKEEPER=1
 # enable it if you understand the risk.
 SPOOF_BATTERY_TEMP=0
 
-# ── Touch tuning (kernel-dependent, pending device data) ───
-# Leave blank until confirmed via tools/probe_touch.sh — see README.
-TOUCH_SENSITIVITY_PATH=
-TOUCH_SENSITIVITY_VALUE=
-TOUCH_EDGE_PATH=
-TOUCH_EDGE_VALUE=
-PALM_REJECT_PATH=
-PALM_REJECT_VALUE=
+# ── Duchamp Tuning (confirmed / named-experimental devices only) ──
+# Standard schedutil governor tunables — ramps CPU frequency up faster
+# on touch input for snappier UI response, small battery cost.
+FAST_CPU_RESPONSE=1
+
+# Keeps the GPU off its lowest frequency step to reduce micro-stutter
+# from downclocking between frames. Bigger battery cost than the CPU
+# tweak above, so off by default.
+GPU_FLOOR=0
 
 # ── Smooth Touch (userspace, kernel-independent) ────────────
 # Scales system animation durations via the Settings provider.
 # 0 = stock (1.0x), 1 = fast (0.5x), 2 = instant (0x — no animations)
 SMOOTH_TOUCH_MODE=1
 
+# ── MIUI Optimization (experimental, may need a reboot) ─────
+# Community-reported lever for foreground app smoothness — distinct
+# from Priority Apps below, which only affects background execution.
+# Not confirmed to work on current HyperOS; see README.
+DISABLE_MIUI_OPT=0
+
+# ── Parallel Animation (experimental, may need a reboot) ────
+# duchamp/rodin have Xiaomi's parallel-animation pipeline on by
+# default already — this attempts to push it further. Exact property
+# name and real-world effect are unconfirmed on current HyperOS.
+PARALLEL_ANIM=0
+
 # ── Priority Apps (userspace, kernel-independent) ───────────
 # Space-separated package names exempted from Doze / App Standby /
-# PowerKeeper background limits. Reduces background-throttle-induced
-# jank (e.g. scroll stutter after the app's been backgrounded a while).
-# NOTE: this changes background execution limits, not rendering
-# internals — it's the only safe userspace lever for this, not a
-# guaranteed fix for any specific app's scroll performance.
+# PowerKeeper background limits.
 PRIORITY_APPS=
 
-# Convenience preset: adds org.telegram.messenger to PRIORITY_APPS.
-# Experimental — see README for what this does and doesn't address.
+# Convenience preset: adds org.telegram.messenger to PRIORITY_APPS AND
+# turns on DISABLE_MIUI_OPT above. Experimental — see README for what
+# this does and doesn't address.
 TG_LAG_FIX=0
 
-# ── WebUI ─────────────────────────────────────────────────
-# UI_STYLE: material | miui
-UI_STYLE=material
-
 # ── Internal — do not edit ───────────────────────────────────
-CONF_VERSION=2
+CONF_VERSION=3

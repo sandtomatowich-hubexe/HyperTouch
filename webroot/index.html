@@ -115,7 +115,7 @@
           <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
           <div class="row-text">
             <div class="label">Animation scale</div>
-            <div class="sub">Userspace only — works even where kernel touch tuning can't.</div>
+            <div class="sub">Userspace only — works on any device, any kernel.</div>
           </div>
         </div>
         <div class="segmented" id="segSmoothTweaks">
@@ -125,22 +125,49 @@
         </div>
       </div>
 
-      <div class="section-title">Touch tuning</div>
-      <div class="card disabled">
+      <div class="section-title">Duchamp Tuning</div>
+      <div class="card">
+        <div class="eyebrow">schedutil up_rate_limit_us / down_rate_limit_us</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/></svg></div>
-          <div class="row-text"><div class="label">Sensitivity</div><div class="sub">Not calibrated for this kernel build yet.</div></div>
-          <div class="locked-tag">pending</div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+          <div class="row-text">
+            <div class="label">Fast CPU response</div>
+            <div class="sub">Ramps CPU frequency up quicker on touch input. Small battery cost.</div>
+          </div>
+          <div class="switch" id="swFastCpu"></div>
         </div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">mali devfreq min_freq</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></div>
-          <div class="row-text"><div class="label">Edge / glove mode</div><div class="sub">Not calibrated for this kernel build yet.</div></div>
-          <div class="locked-tag">pending</div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-text">
+            <div class="label">GPU floor</div>
+            <div class="sub">Keeps the GPU off its lowest step to cut micro-stutter. Bigger battery cost than the CPU tweak above.</div>
+          </div>
+          <div class="switch" id="swGpuFloor"></div>
         </div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">persist.sys.miui_optimization</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6.5 6.5l11 11"/></svg></div>
-          <div class="row-text"><div class="label">Palm rejection</div><div class="sub">Not calibrated for this kernel build yet.</div></div>
-          <div class="locked-tag">pending</div>
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
+          <div class="row-text">
+            <div class="label">Disable MIUI Optimization</div>
+            <div class="sub warn">Experimental, may need a reboot to fully apply. Community-reported lever for general app smoothness — not confirmed on current HyperOS.</div>
+          </div>
+          <div class="switch warn" id="swMiuiOpt"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">persist.sys.parallel_animator (unconfirmed name)</div>
+        <div class="row">
+          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-text">
+            <div class="label">Parallel Animation</div>
+            <div class="sub warn">Experimental. duchamp/rodin have Xiaomi's parallel-animation pipeline on by default already — this pushes further. Property name and real effect unconfirmed, may need a reboot.</div>
+          </div>
+          <div class="switch warn" id="swParallelAnim"></div>
         </div>
       </div>
       <button class="primary" id="applyBtnTweaks">Apply now</button>
@@ -155,7 +182,7 @@
           <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
           <div class="row-text">
             <div class="label">TG Lag Fix</div>
-            <div class="sub">Experimental — exempts Telegram from Doze/background limits. Reported HyperOS scroll stutter may have other causes; this addresses the one safe userspace lever available.</div>
+            <div class="sub">Experimental, rebuilt — now also disables MIUI Optimization (foreground-focused), not just background exemption alone. The background-only version was tested and didn't help; this layers on a second mechanism. Still not guaranteed.</div>
           </div>
           <div class="switch" id="swTgFix"></div>
         </div>
@@ -229,6 +256,10 @@
           <div class="wallpaper-item">
             <div class="wallpaper-swatch" data-val="grid"><div class="wallpaper wp-grid"></div></div>
             <span class="wallpaper-swatch-label">Grid</span>
+          </div>
+          <div class="wallpaper-item">
+            <div class="wallpaper-swatch" data-val="pulse"><div class="wallpaper wp-pulse"></div></div>
+            <span class="wallpaper-swatch-label">Pulse</span>
           </div>
         </div>
       </div>
