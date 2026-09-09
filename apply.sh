@@ -58,12 +58,13 @@ trap 'rmdir "$LOCK" 2>/dev/null' EXIT INT TERM
 # ── defaults, overridden by settings.conf ──────────────────
 REPORT_RATE_MODE=1
 DISABLE_POWERKEEPER=1
+POWERKEEPER_FULL_DISABLE=0
 SPOOF_BATTERY_TEMP=0
 SMOOTH_TOUCH_MODE=1
 PRIORITY_APPS=
 TG_LAG_FIX=0
-DISABLE_MIUI_OPT=0
 PARALLEL_ANIM=0
+LAUNCHER_ANIM_RATE=0
 FAST_CPU_RESPONSE=1
 GPU_FLOOR=0
 
@@ -174,6 +175,19 @@ apply_powerkeeper() {
         pm enable com.miui.powerkeeper/.statemachine.PowerStateMachineService >/dev/null 2>&1
         say "  enabled (stock)"
     fi
+
+    # Community-verified separately from the single-component disable
+    # above: PowerKeeper (branded "Battery & Performance") is also
+    # what caps some apps to 60Hz even on 120Hz-capable phones.
+    # Disabling the whole app — not just the state-machine service —
+    # is the confirmed fix, but it's a bigger behavior change (loses
+    # the "Battery Saver" entry in per-app battery settings), so it's
+    # its own opt-in toggle rather than silently folded into the one
+    # above.
+    if [ "$POWERKEEPER_FULL_DISABLE" = "1" ]; then
+        pm disable-user --user 0 com.miui.powerkeeper >/dev/null 2>&1
+        say "  fully disabled (unlocks apps HyperOS caps to 60Hz)"
+    fi
 }
 
 # ── Smooth Touch — userspace animation scaling, kernel-independent ──
@@ -190,32 +204,29 @@ apply_smooth_touch() {
     say "  animation scale = $scale"
 }
 
-# ── MIUI Optimization — experimental, may need a reboot ─────
-# Unlike everything else here, ART/app-compilation behavior tied to
-# this toggle doesn't necessarily take effect live. Community-reported
-# lever, not a confirmed fix — see README.
-apply_miui_opt() {
-    [ "$DISABLE_MIUI_OPT" != "1" ] && return
-    echo "→ miui optimization"
-    if command -v resetprop >/dev/null 2>&1; then
-        resetprop persist.sys.miui_optimization false >/dev/null 2>&1
-    else
-        setprop persist.sys.miui_optimization false >/dev/null 2>&1
-    fi
-    say "  disabled (reboot recommended for full effect)"
-}
-
-# ── Parallel Animation — experimental, property name unconfirmed ──
+# ── Parallel Animation — real mechanism, confirmed working ──
+# Not a made-up prop this time: deviceLevelList is a genuine
+# Settings.System key HyperOS reads to decide which animation tier a
+# device gets. duchamp/rodin are hardware-capable but classified below
+# the tier that unlocks it — this raises the classification directly,
+# no launcher/app modification involved.
 apply_parallel_anim() {
     [ "$PARALLEL_ANIM" != "1" ] && return
-    echo "→ parallel animation (experimental)"
-    if command -v resetprop >/dev/null 2>&1; then
-        resetprop persist.sys.parallel_animator true >/dev/null 2>&1
-        resetprop persist.sys.miui_animator.parallel true >/dev/null 2>&1
-    else
-        setprop persist.sys.parallel_animator true >/dev/null 2>&1
-    fi
-    say "  attempted (reboot recommended, effect unconfirmed on this HyperOS build)"
+    echo "→ parallel animation"
+    settings put system deviceLevelList "v:1,c:3,g:3" 2>/dev/null
+    say "  deviceLevelList set to v:1,c:3,g:3 (reboot recommended)"
+}
+
+# ── Launcher animation rate — com.miui.home, no launcher edits ──
+# Same idea as above but scoped specifically to the launcher: this is
+# a Settings.System key the stock launcher itself reads at runtime, so
+# it's a real way to influence com.miui.home's animation behavior
+# without touching the launcher's own code (no Java/smali involved).
+apply_launcher_anim() {
+    [ "$LAUNCHER_ANIM_RATE" != "1" ] && return
+    echo "→ launcher animation rate"
+    settings put system miui_home_animation_rate 1 2>/dev/null
+    say "  miui_home_animation_rate set to 1 (force-stop the launcher, or reboot, to see it)"
 }
 
 # ── Priority Apps — background-restriction exemption, kernel-independent ──
@@ -254,21 +265,38 @@ update_live_info() {
     kernel=$(uname -r 2>/dev/null | cut -d- -f1)
     rate_status="stock"
     [ "$REPORT_RATE_MODE" = "1" ] && rate_status="boosted"
-    refresh=$(dumpsys display 2>/dev/null | grep -o 'fps=[0-9.]*' | head -1 | cut -d= -f2)
+
+    # dumpsys display lists every supported mode's fps, not just the
+    # active one — grabbing the first match was the 60-vs-120 bug.
+    # Taking the highest value found is a better heuristic: the WebUI
+    # is actively being interacted with when this runs, so the display
+    # is very likely at (or near) its max rate at that moment.
+    refresh=$(dumpsys display 2>/dev/null | grep -o 'fps=[0-9]*\.[0-9]*' | cut -d= -f2 | sort -rn | head -1)
     [ -z "$refresh" ] && refresh="?"
 
-    desc="Touch: $rate_status · ${refresh}Hz · kernel $kernel · profile $DEVICE_PROFILE"
+    mem_total_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null)
+    mem_avail_kb=$(awk '/MemAvailable/{print $2}' /proc/meminfo 2>/dev/null)
+    if [ -n "$mem_total_kb" ] && [ -n "$mem_avail_kb" ]; then
+        mem_used_gb=$(awk "BEGIN{printf \"%.1f\", ($mem_total_kb-$mem_avail_kb)/1048576}")
+        mem_total_gb=$(awk "BEGIN{printf \"%.1f\", $mem_total_kb/1048576}")
+        ram="${mem_used_gb}/${mem_total_gb}GB"
+    else
+        ram="?"
+    fi
+
+    desc="Touch: $rate_status · ${refresh}Hz · RAM $ram · kernel $kernel · $DEVICE_PROFILE"
     sed -i "s|^description=.*|description=$desc|" "$PROP" 2>/dev/null
 }
 
-# TG_LAG_FIX bundles the MIUI-optimization toggle too — Priority Apps
-# alone was tested and reported no noticeable difference, since Doze/
-# Standby exemption only affects background execution, not foreground
-# scroll rendering. miui_optimization is the more plausible lever for
-# an actively-foregrounded app, so this is a second, distinct mechanism
-# layered on, not a replacement.
+# TG_LAG_FIX bundles the verified PowerKeeper full-disable, since
+# that's what's actually confirmed to unlock apps HyperOS caps to
+# 60Hz — not MIUI Optimization, which was tested and didn't help.
+# Priority Apps (background exemption) stays layered on too. Telegram
+# also has its own animated-background rendering that HyperTouch has
+# no way to reach from outside the app — see README for that manual
+# step, since a root tweak fundamentally can't touch it.
 if [ "$TG_LAG_FIX" = "1" ]; then
-    DISABLE_MIUI_OPT=1
+    POWERKEEPER_FULL_DISABLE=1
 fi
 
 # ── run ──
@@ -281,8 +309,8 @@ fi
 
 apply_powerkeeper
 apply_smooth_touch
-apply_miui_opt
 apply_parallel_anim
+apply_launcher_anim
 apply_priority_apps
 update_live_info
 

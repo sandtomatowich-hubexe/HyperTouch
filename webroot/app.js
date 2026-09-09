@@ -39,8 +39,8 @@
   // ============================================================
   var state = {
     REPORT_RATE_MODE:"1", DISABLE_POWERKEEPER:"1", SPOOF_BATTERY_TEMP:"0",
-    FAST_CPU_RESPONSE:"1", GPU_FLOOR:"0",
-    SMOOTH_TOUCH_MODE:"1", DISABLE_MIUI_OPT:"0", PARALLEL_ANIM:"0",
+    FAST_CPU_RESPONSE:"1", GPU_FLOOR:"0", POWERKEEPER_FULL_DISABLE:"0",
+    SMOOTH_TOUCH_MODE:"1", PARALLEL_ANIM:"0", LAUNCHER_ANIM_RATE:"0",
     PRIORITY_APPS:"", TG_LAG_FIX:"0",
     CONF_VERSION:"3"
   };
@@ -160,6 +160,7 @@
       "",
       "# ── System ────────────────────────────────────────────────",
       "DISABLE_POWERKEEPER=" + state.DISABLE_POWERKEEPER,
+      "POWERKEEPER_FULL_DISABLE=" + state.POWERKEEPER_FULL_DISABLE,
       "SPOOF_BATTERY_TEMP=" + state.SPOOF_BATTERY_TEMP,
       "",
       "# ── Duchamp Tuning (confirmed / named-experimental devices only) ──",
@@ -169,11 +170,9 @@
       "# ── Smooth Touch (userspace, kernel-independent) ────────────",
       "SMOOTH_TOUCH_MODE=" + state.SMOOTH_TOUCH_MODE,
       "",
-      "# ── MIUI Optimization (experimental, may need a reboot) ─────",
-      "DISABLE_MIUI_OPT=" + state.DISABLE_MIUI_OPT,
-      "",
-      "# ── Parallel Animation (experimental, may need a reboot) ────",
+      "# ── Parallel Animation (reboot recommended) ──────────────────",
       "PARALLEL_ANIM=" + state.PARALLEL_ANIM,
+      "LAUNCHER_ANIM_RATE=" + state.LAUNCHER_ANIM_RATE,
       "",
       "# ── Priority Apps (userspace, kernel-independent) ───────────",
       "PRIORITY_APPS=" + state.PRIORITY_APPS,
@@ -247,14 +246,33 @@
   // ============================================================
   var smoothLabels = {"0":"Stock", "1":"Fast", "2":"Instant"};
 
+  // Nav dashboard: sweep speed reflects actual current tuning
+  // intensity — not decorative, a live readout. Recalculated every
+  // render() call, so toggling any of these updates it immediately.
+  function updateNavDash(){
+    var score = 0;
+    if (state.REPORT_RATE_MODE === "1") score += 1;
+    score += (parseInt(state.SMOOTH_TOUCH_MODE, 10) || 0); // 0/1/2
+    if (state.FAST_CPU_RESPONSE === "1") score += 1;
+    if (state.GPU_FLOOR === "1") score += 1;
+    if (state.PARALLEL_ANIM === "1") score += 0.5;
+    if (state.LAUNCHER_ANIM_RATE === "1") score += 0.5;
+    var maxScore = 6;
+    var minDur = 0.8, maxDur = 3.2;
+    var duration = maxDur - (Math.min(score, maxScore) / maxScore) * (maxDur - minDur);
+    var dash = document.getElementById("navDash");
+    if (dash) dash.style.setProperty("--dash-speed", duration.toFixed(2) + "s");
+  }
+
   function render(){
     els.reportRateSwitches.forEach(function(el){ el.classList.toggle("on", state.REPORT_RATE_MODE === "1"); });
     els.swPowerkeeper.classList.toggle("on", state.DISABLE_POWERKEEPER === "1");
     els.swBatterySpoof.classList.toggle("on", state.SPOOF_BATTERY_TEMP === "1");
     els.swFastCpu.classList.toggle("on", state.FAST_CPU_RESPONSE === "1");
     els.swGpuFloor.classList.toggle("on", state.GPU_FLOOR === "1");
-    els.swMiuiOpt.classList.toggle("on", state.DISABLE_MIUI_OPT === "1");
+    els.swPowerkeeperFull.classList.toggle("on", state.POWERKEEPER_FULL_DISABLE === "1");
     els.swParallelAnim.classList.toggle("on", state.PARALLEL_ANIM === "1");
+    els.swLauncherAnim.classList.toggle("on", state.LAUNCHER_ANIM_RATE === "1");
     els.swTgFix.classList.toggle("on", state.TG_LAG_FIX === "1");
 
     var boosted = state.REPORT_RATE_MODE === "1";
@@ -284,6 +302,7 @@
       chip.appendChild(span); chip.appendChild(btn);
       els.chipList.appendChild(chip);
     });
+    updateNavDash();
   }
 
   function renderSettingsSegments(){
@@ -388,11 +407,12 @@
     els.statSmooth = document.getElementById("statSmooth");
     els.reportRateSwitches = [document.getElementById("swReportRate2")];
     els.swPowerkeeper = document.getElementById("swPowerkeeper");
+    els.swPowerkeeperFull = document.getElementById("swPowerkeeperFull");
     els.swBatterySpoof = document.getElementById("swBatterySpoof");
     els.swFastCpu = document.getElementById("swFastCpu");
     els.swGpuFloor = document.getElementById("swGpuFloor");
-    els.swMiuiOpt = document.getElementById("swMiuiOpt");
     els.swParallelAnim = document.getElementById("swParallelAnim");
+    els.swLauncherAnim = document.getElementById("swLauncherAnim");
     els.swTgFix = document.getElementById("swTgFix");
     els.smoothSegs = [document.getElementById("segSmoothHome"), document.getElementById("segSmoothTweaks")];
     els.chipList = document.getElementById("chipList");
@@ -434,12 +454,16 @@
       state.GPU_FLOOR = state.GPU_FLOOR === "1" ? "0" : "1";
       render(); applyNow(false);
     });
-    els.swMiuiOpt.addEventListener("click", function(){
-      state.DISABLE_MIUI_OPT = state.DISABLE_MIUI_OPT === "1" ? "0" : "1";
+    els.swPowerkeeperFull.addEventListener("click", function(){
+      state.POWERKEEPER_FULL_DISABLE = state.POWERKEEPER_FULL_DISABLE === "1" ? "0" : "1";
       render(); applyNow(false);
     });
     els.swParallelAnim.addEventListener("click", function(){
       state.PARALLEL_ANIM = state.PARALLEL_ANIM === "1" ? "0" : "1";
+      render(); applyNow(false);
+    });
+    els.swLauncherAnim.addEventListener("click", function(){
+      state.LAUNCHER_ANIM_RATE = state.LAUNCHER_ANIM_RATE === "1" ? "0" : "1";
       render(); applyNow(false);
     });
     els.swTgFix.addEventListener("click", function(){

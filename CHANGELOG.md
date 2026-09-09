@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.3
+
+- Removed MIUI Optimization entirely — tested, didn't help TG lag, and users reported it made the UI worse to live with
+- Added PowerKeeper full-disable — community-verified fix for HyperOS capping some apps to 60Hz on 120Hz phones; `TG_LAG_FIX` now bundles this instead of the removed MIUI Optimization
+- Fixed Parallel Animation — v2.2's property-name guess was wrong; real mechanism is `settings put system deviceLevelList "v:1,c:3,g:3"`
+- Added Launcher Animation — same `deviceLevelList`-style mechanism, scoped to `com.miui.home` via `miui_home_animation_rate`, no launcher decompiling/patching involved
+- Fixed module.prop's refresh-rate readout showing 60Hz on a 120Hz phone (was reading the first `dumpsys display` match, not the active one)
+- module.prop now shows real RAM usage
+- Fixed a screen-recorder black-screen issue — `debug.sf.enable_hwc_vds` was forcing virtual displays (what screen recorders create) through a hardware-composer path that doesn't fully support them on this device; removed, along with a dead Qualcomm-only prop that never applied to duchamp/rodin's MediaTek chip anyway
+- Redesigned every WebUI icon — accurate shapes (proper CPU chip, gauge, parallel-lines, activity+floor for GPU), color-coded per category, no more duplicate icons across unrelated features
+- Nav bar: more compact, fixed empty-corner spacing, brought back the v1 sweep-dot indicator as a live reactive dashboard
+
 ## v2.2
 
 - Removed the placeholder touch-tuning nodes (sensitivity/edge/palm-reject) — never got confirmed real paths, so they were dead weight

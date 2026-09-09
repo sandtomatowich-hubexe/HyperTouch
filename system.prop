@@ -10,9 +10,7 @@ debug.egl.hw=1
 video.accelerate.hw=1
 
 # SurfaceFlinger
-debug.sf.enable_hwc_vds=1
 debug.sf.latch_unsignaled=0
-debug.gralloc.gfx_ubwc_disable=0
 ro.surface_flinger.max_frame_buffer_acquired_buffers=3
 
 # Qualcomm input (harmless no-op on MediaTek, kept for cross-variant use)

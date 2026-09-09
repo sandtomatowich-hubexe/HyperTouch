@@ -11,7 +11,8 @@
 #   action.sh                     re-apply current settings
 #   action.sh status              show current settings + device profile
 #   action.sh enable <feature>    boost | powerkeeper | battery-spoof |
-#                                 fast-cpu | gpu-floor | miui-opt | tg-fix
+#                                 fast-cpu | gpu-floor | powerkeeper-full |
+#                                 parallel-anim | launcher-anim | tg-fix
 #   action.sh disable <feature>   (same feature names)
 #   action.sh reset               restore settings.conf to shipped defaults
 #   action.sh revert              temporarily undo tweaks (settings.conf kept)
@@ -36,10 +37,12 @@ feature_key() {
     case "$1" in
         boost|report-rate) echo REPORT_RATE_MODE ;;
         powerkeeper)       echo DISABLE_POWERKEEPER ;;
+        powerkeeper-full)  echo POWERKEEPER_FULL_DISABLE ;;
         battery-spoof)     echo SPOOF_BATTERY_TEMP ;;
         fast-cpu)          echo FAST_CPU_RESPONSE ;;
         gpu-floor)         echo GPU_FLOOR ;;
-        miui-opt)          echo DISABLE_MIUI_OPT ;;
+        parallel-anim)     echo PARALLEL_ANIM ;;
+        launcher-anim)     echo LAUNCHER_ANIM_RATE ;;
         tg-fix)            echo TG_LAG_FIX ;;
         *)                 echo "" ;;
     esac
@@ -61,11 +64,13 @@ cmd_status() {
     echo "  device         : $DEVICE ($PROFILE profile)"
     echo "  report rate    : $(conf_get REPORT_RATE_MODE)  (0=stock 1=boosted)"
     echo "  powerkeeper    : $(conf_get DISABLE_POWERKEEPER)  (1=disabled/bypassed)"
+    echo "  powerkeeper full: $(conf_get POWERKEEPER_FULL_DISABLE)  (unlocks 60Hz-capped apps)"
     echo "  battery spoof  : $(conf_get SPOOF_BATTERY_TEMP)  (0=off, real temp reported)"
     echo "  fast cpu resp. : $(conf_get FAST_CPU_RESPONSE)"
     echo "  gpu floor      : $(conf_get GPU_FLOOR)"
     echo "  smooth touch   : $(conf_get SMOOTH_TOUCH_MODE)  (0=stock 1=fast 2=instant)"
-    echo "  miui opt off   : $(conf_get DISABLE_MIUI_OPT)  (experimental)"
+    echo "  parallel anim  : $(conf_get PARALLEL_ANIM)  (deviceLevelList)"
+    echo "  launcher anim  : $(conf_get LAUNCHER_ANIM_RATE)"
     echo "  priority apps  : $(conf_get PRIORITY_APPS)"
     echo "  tg lag fix     : $(conf_get TG_LAG_FIX)  (experimental)"
 }
@@ -73,7 +78,7 @@ cmd_status() {
 cmd_enable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, miui-opt, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, tg-fix"
         exit 1
     fi
     conf_set "$key" 1
@@ -84,7 +89,7 @@ cmd_enable() {
 cmd_disable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, miui-opt, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, tg-fix"
         exit 1
     fi
     conf_set "$key" 0
@@ -128,7 +133,8 @@ HyperTouch management CLI
   action.sh                    re-apply current settings
   action.sh status              show current settings + device profile
   action.sh enable <feature>    boost | powerkeeper | battery-spoof |
-                                fast-cpu | gpu-floor | miui-opt | tg-fix
+                                fast-cpu | gpu-floor | powerkeeper-full |
+                                parallel-anim | launcher-anim | tg-fix
   action.sh disable <feature>   (same feature names)
   action.sh reset               restore settings.conf to shipped defaults
   action.sh revert              temporarily undo tweaks (settings kept)

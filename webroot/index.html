@@ -54,7 +54,7 @@
 
       <div class="card">
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-icon icon-green"><svg viewBox="0 0 24 24"><path d="M12 13l4-4"/><path d="M4 19a8 8 0 1116 0"/><circle cx="12" cy="13" r="1"/></svg></div>
           <div class="row-text">
             <div class="label">Smooth Touch</div>
             <div class="sub">System animation speed — userspace, no kernel dependency.</div>
@@ -76,7 +76,7 @@
       <div class="card">
         <div class="eyebrow">/sys/devices/platform/goodix_ts.0/switch_report_rate</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
           <div class="row-text">
             <div class="label">Boosted report rate</div>
             <div class="sub">Stock rate is used when off.</div>
@@ -89,7 +89,7 @@
       <div class="card">
         <div class="eyebrow">com.miui.powerkeeper<wbr>/.statemachine<wbr>.PowerStateMachineService</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
+          <div class="row-icon icon-violet"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
           <div class="row-text">
             <div class="label">Disable PowerKeeper throttling</div>
             <div class="sub">No-ops safely on non-HyperOS ROMs.</div>
@@ -98,9 +98,20 @@
         </div>
       </div>
       <div class="card">
+        <div class="eyebrow">com.miui.powerkeeper (whole package)</div>
+        <div class="row">
+          <div class="row-icon icon-orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 6v4"/></svg></div>
+          <div class="row-text">
+            <div class="label">PowerKeeper full disable</div>
+            <div class="sub warn">Community-verified fix for HyperOS capping some apps to 60Hz on 120Hz phones. Bigger than the toggle above — loses the "Battery Saver" entry in per-app battery settings.</div>
+          </div>
+          <div class="switch warn" id="swPowerkeeperFull"></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="eyebrow">/sys/class/power_supply/bms/temp</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/></svg></div>
+          <div class="row-icon icon-orange"><svg viewBox="0 0 24 24"><path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/></svg></div>
           <div class="row-text">
             <div class="label">Battery temp override</div>
             <div class="sub warn">Hides real overheating from the system — leave off unless you know what you're doing.</div>
@@ -112,7 +123,7 @@
       <div class="section-title">Smooth Touch</div>
       <div class="card">
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-icon icon-green"><svg viewBox="0 0 24 24"><path d="M12 13l4-4"/><path d="M4 19a8 8 0 1116 0"/><circle cx="12" cy="13" r="1"/></svg></div>
           <div class="row-text">
             <div class="label">Animation scale</div>
             <div class="sub">Userspace only — works on any device, any kernel.</div>
@@ -129,7 +140,7 @@
       <div class="card">
         <div class="eyebrow">schedutil up_rate_limit_us / down_rate_limit_us</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
+          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
           <div class="row-text">
             <div class="label">Fast CPU response</div>
             <div class="sub">Ramps CPU frequency up quicker on touch input. Small battery cost.</div>
@@ -140,7 +151,7 @@
       <div class="card">
         <div class="eyebrow">mali devfreq min_freq</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-icon icon-teal"><svg viewBox="0 0 24 24"><path d="M3 17l4-3 3 5 4-10 3 6 4-4"/><path d="M3 20h18" stroke-dasharray="2 2"/></svg></div>
           <div class="row-text">
             <div class="label">GPU floor</div>
             <div class="sub">Keeps the GPU off its lowest step to cut micro-stutter. Bigger battery cost than the CPU tweak above.</div>
@@ -149,25 +160,25 @@
         </div>
       </div>
       <div class="card">
-        <div class="eyebrow">persist.sys.miui_optimization</div>
+        <div class="eyebrow">settings put system deviceLevelList</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
+          <div class="row-icon icon-violet"><svg viewBox="0 0 24 24"><path d="M7 4l-4 16M13 4l-4 16M19 4l-4 16"/></svg></div>
           <div class="row-text">
-            <div class="label">Disable MIUI Optimization</div>
-            <div class="sub warn">Experimental, may need a reboot to fully apply. Community-reported lever for general app smoothness — not confirmed on current HyperOS.</div>
+            <div class="label">Parallel Animation</div>
+            <div class="sub">Raises HyperOS's device animation tier (v:1,c:3,g:3) — duchamp/rodin are hardware-capable but classified below the tier that unlocks this by default. Reboot recommended.</div>
           </div>
-          <div class="switch warn" id="swMiuiOpt"></div>
+          <div class="switch" id="swParallelAnim"></div>
         </div>
       </div>
       <div class="card">
-        <div class="eyebrow">persist.sys.parallel_animator (unconfirmed name)</div>
+        <div class="eyebrow">settings put system miui_home_animation_rate</div>
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M4 13a8 8 0 0116 0M4 13l3 2M20 13l-3 2M12 13l0-5"/></svg></div>
+          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></div>
           <div class="row-text">
-            <div class="label">Parallel Animation</div>
-            <div class="sub warn">Experimental. duchamp/rodin have Xiaomi's parallel-animation pipeline on by default already — this pushes further. Property name and real effect unconfirmed, may need a reboot.</div>
+            <div class="label">Launcher Animation</div>
+            <div class="sub">Same idea, scoped to com.miui.home specifically — no launcher modification, just a setting it already reads. Force-stop the launcher or reboot to see it.</div>
           </div>
-          <div class="switch warn" id="swParallelAnim"></div>
+          <div class="switch" id="swLauncherAnim"></div>
         </div>
       </div>
       <button class="primary" id="applyBtnTweaks">Apply now</button>
@@ -179,10 +190,10 @@
       <div class="section-title">Telegram scroll lag</div>
       <div class="card">
         <div class="row">
-          <div class="row-icon"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
+          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
           <div class="row-text">
             <div class="label">TG Lag Fix</div>
-            <div class="sub">Experimental, rebuilt — now also disables MIUI Optimization (foreground-focused), not just background exemption alone. The background-only version was tested and didn't help; this layers on a second mechanism. Still not guaranteed.</div>
+            <div class="sub">Experimental. Now bundles the verified PowerKeeper full-disable (Tweaks → System), not MIUI Optimization — that was tested and didn't help. One thing this can't reach: Telegram's own animated chat background is a real, developer-acknowledged performance cost — try a static wallpaper inside Telegram too (Settings → Chat Settings).</div>
           </div>
           <div class="switch" id="swTgFix"></div>
         </div>
@@ -304,6 +315,8 @@
   </main>
 
   <nav class="navbar">
+    <div class="nav-dash" id="navDash"><div class="nav-dash-dot"></div></div>
+    <div class="navrow">
     <button class="navitem active" data-page="home" aria-label="Home">
       <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
     </button>
@@ -316,6 +329,7 @@
     <button class="navitem" data-page="settings" aria-label="Settings">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09A1.7 1.7 0 009 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>
     </button>
+    </div>
   </nav>
 
   <div class="toast-stack" id="toastStack"></div>
