@@ -59,6 +59,7 @@ fi
 # Magisk/KernelSU, so they need it set explicitly.
 set_perm "$MODPATH/action.sh" 0 0 0755
 set_perm "$MODPATH/apply.sh" 0 0 0755
+set_perm "$MODPATH/lock.sh" 0 0 0755
 set_perm "$MODPATH/tools/probe_device.sh" 0 0 0755
 
 ui_print " Done. Reboot to apply, or use the WebUI / Action"

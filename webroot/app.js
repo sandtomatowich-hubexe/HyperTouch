@@ -382,6 +382,21 @@
     else if (deviceCode === "rodin"){ profile = "experimental-named"; profileLabel = "Experimental (Rodin)"; }
     document.getElementById("mProfile").textContent = profile;
     els.statProfile.textContent = profileLabel;
+
+    // Mirrors apply.sh's detect_rom() so the WebUI shows the same
+    // answer even before the first apply has run.
+    var romCmd = "hyperos=$(getprop ro.mi.os.version.name); miui=$(getprop ro.miui.ui.version.name);" +
+      "if [ -n \"$hyperos\" ]; then echo \"HyperOS $hyperos\";" +
+      "elif [ -n \"$miui\" ]; then echo \"MIUI $miui\";" +
+      "elif [ -n \"$(getprop ro.infinity.version)\" ]; then echo \"InfinityX $(getprop ro.infinity.version)\";" +
+      "elif [ -n \"$(getprop ro.lineage.version)\" ]; then echo \"LineageOS $(getprop ro.lineage.version)\";" +
+      "elif [ -n \"$(getprop ro.crdroid.version)\" ]; then echo \"crDroid $(getprop ro.crdroid.version)\";" +
+      "elif [ -n \"$(getprop ro.pixelexperience.version)\" ]; then echo \"PixelExperience $(getprop ro.pixelexperience.version)\";" +
+      "elif [ -n \"$(getprop ro.aospa.version)\" ]; then echo \"AOSPA $(getprop ro.aospa.version)\";" +
+      "elif [ -n \"$(getprop ro.build.version.opporom)\" ] || [ -n \"$(getprop ro.oplus.version)\" ]; then echo \"ColorOS-based $(getprop ro.build.version.opporom)\";" +
+      "else echo \"AOSP-based (Android $(getprop ro.build.version.release))\"; fi";
+    var rr = await ksuExec(romCmd);
+    if (rr.errno === 0 && rr.stdout) document.getElementById("mRom").textContent = rr.stdout.trim();
   }
 
   async function loadModuleProp(){

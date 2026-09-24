@@ -24,35 +24,74 @@ write() {
     # Only writes if the node exists and is writable; silently skips
     # otherwise so an unrecognized/wrong-device path never breaks the
     # script — it just gets reported and moved past.
-    if [ -w "$1" ]; then
-        echo "$2" > "$1" 2>/dev/null
+    #
+    # -w passing doesn't guarantee the write itself succeeds (kernel
+    # can reject the value, node can be write-once, etc.), so the
+    # actual `echo >` exit status is what decides success/failure —
+    # not just node existence.
+    if [ ! -w "$1" ]; then
+        warn "  skipped (not writable): $1"
+        return 1
+    fi
+    if echo "$2" > "$1" 2>/dev/null; then
         say "  applied: ${1##*/} = $2"
         return 0
     fi
-    warn "  skipped (not writable): $1"
+    warn "  failed to write: ${1##*/} = $2"
     return 1
+}
+
+# Saves a node's current value before we overwrite it, so revert can
+# restore it later instead of just guessing a stock value. Stored
+# under $MODDIR/.state, one file per node (path-safe name), only ever
+# written if it doesn't already hold a value — so re-running apply.sh
+# repeatedly never clobbers the *original* pre-module value with an
+# already-tweaked one.
+STATE_DIR="$MODDIR/.state"
+save_orig() {
+    node="$1"
+    [ -r "$node" ] || return 1
+    key=$(echo "$node" | tr '/' '_')
+    dst="$STATE_DIR/$key"
+    if [ ! -f "$dst" ]; then
+        mkdir -p "$STATE_DIR" 2>/dev/null
+        cat "$node" 2>/dev/null > "$dst"
+    fi
+}
+
+# Same idea as save_orig but for `settings get` values (deviceLevelList,
+# miui_home_animation_rate) rather than sysfs nodes — no /path to
+# derive a filename from, so the caller names the state file directly.
+save_setting_orig() {
+    namespace="$1"; key="$2"; statefile="$3"
+    dst="$STATE_DIR/$statefile"
+    [ -f "$dst" ] && return 0
+    val=$(settings get "$namespace" "$key" 2>/dev/null)
+    # `settings get` prints the literal string "null" for an unset
+    # key — don't persist that as if it were a real prior value.
+    [ -z "$val" ] || [ "$val" = "null" ] && return 0
+    mkdir -p "$STATE_DIR" 2>/dev/null
+    echo "$val" > "$dst"
 }
 
 echo "── HyperTouch: applying settings ──"
 
 # ── Concurrency lock ─────────────────────────────────────────
-# mkdir is atomic on POSIX filesystems, so this can't race. If the
-# WebUI and the manager's Action button fire close together, the
-# second one waits instead of reading settings.conf mid-write by the
-# first — that overlap was a real, if rare, way for a just-made change
-# to silently appear reverted.
-LOCK="$MODDIR/.apply.lock"
-i=0
-while ! mkdir "$LOCK" 2>/dev/null; do
-    i=$((i + 1))
-    if [ "$i" -gt 8 ]; then
-        # Stale lock from a crashed run — clear it rather than hang forever.
-        rmdir "$LOCK" 2>/dev/null
-        break
-    fi
-    sleep 1
-done
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT INT TERM
+# Shared with action.sh (see lock.sh) so settings.conf writes and this
+# apply pass share one critical section — the WebUI/manager writing
+# config and a concurrent apply run can no longer interleave.
+#
+# HT_LOCK_HELD lets a caller that already holds the lock (action.sh's
+# enable/disable/reset, which write config then run this script) tell
+# us to skip re-acquiring — otherwise this script's own mkdir would
+# block forever behind the caller's own held lock (deadlock: caller is
+# waiting on us to exit, we're waiting on caller's lock to free).
+# shellcheck disable=SC1090
+. "$MODDIR/lock.sh"
+if [ "$HT_LOCK_HELD" != "1" ]; then
+    ht_lock_acquire
+    _HT_ACQUIRED_HERE=1
+fi
 
 
 # ── defaults, overridden by settings.conf ──────────────────
@@ -117,16 +156,58 @@ esac
 
 say "device: $DEVICE ($DEVICE_PROFILE profile)"
 
+# ── ROM detection ────────────────────────────────────────────
+# Standard Android/custom-ROM identifying properties. Not tied to any
+# single ROM's source — hardware tweaks above already work regardless
+# of ROM (they're kernel-level), this is purely for accurate reporting
+# and so HyperOS-only features (PowerKeeper, deviceLevelList) know to
+# stay quiet on AOSP-based ROMs instead of pretending to do something.
+detect_rom() {
+    hyperos=$(getprop ro.mi.os.version.name 2>/dev/null)
+    miui=$(getprop ro.miui.ui.version.name 2>/dev/null)
+    if [ -n "$hyperos" ]; then
+        echo "HyperOS $hyperos"
+    elif [ -n "$miui" ]; then
+        echo "MIUI $miui"
+    elif [ -n "$(getprop ro.infinity.version 2>/dev/null)" ]; then
+        echo "InfinityX $(getprop ro.infinity.version)"
+    elif [ -n "$(getprop ro.lineage.version 2>/dev/null)" ]; then
+        echo "LineageOS $(getprop ro.lineage.version)"
+    elif [ -n "$(getprop ro.crdroid.version 2>/dev/null)" ]; then
+        echo "crDroid $(getprop ro.crdroid.version)"
+    elif [ -n "$(getprop ro.pixelexperience.version 2>/dev/null)" ]; then
+        echo "PixelExperience $(getprop ro.pixelexperience.version)"
+    elif [ -n "$(getprop ro.aospa.version 2>/dev/null)" ]; then
+        echo "AOSPA $(getprop ro.aospa.version)"
+    elif [ -n "$(getprop ro.build.version.opporom 2>/dev/null)" ] || [ -n "$(getprop ro.oplus.version 2>/dev/null)" ]; then
+        echo "ColorOS-based $(getprop ro.build.version.opporom 2>/dev/null)"
+    else
+        echo "AOSP-based (Android $(getprop ro.build.version.release 2>/dev/null))"
+    fi
+}
+ROM=$(detect_rom)
+IS_HYPEROS=0
+case "$ROM" in HyperOS*|MIUI*) IS_HYPEROS=1 ;; esac
+say "rom: $ROM"
+
 apply_hardware_tweaks() {
     echo "→ hardware tweaks"
+    save_orig "$GOODIX_PATH"
     write "$GOODIX_PATH" "$REPORT_RATE_MODE"
+
+    save_orig "$MALI_PLATFORM/governor"
     write "$MALI_PLATFORM/governor" "simple_ondemand"
+
     for p in $CPU_POLICIES; do
+        save_orig "/sys/devices/system/cpu/cpufreq/policy$p/scaling_governor"
         write "/sys/devices/system/cpu/cpufreq/policy$p/scaling_governor" "schedutil"
     done
+
+    save_orig "$THERMAL_SCONFIG_PATH"
     write "$THERMAL_SCONFIG_PATH" 6
 
     if [ "$SPOOF_BATTERY_TEMP" = "1" ]; then
+        save_orig "$BMS_TEMP_PATH"
         write "$BMS_TEMP_PATH" 250
     fi
 }
@@ -140,6 +221,8 @@ apply_duchamp_tuning() {
     if [ "$FAST_CPU_RESPONSE" = "1" ]; then
         for p in $CPU_POLICIES; do
             sd="/sys/devices/system/cpu/cpufreq/policy$p/schedutil"
+            save_orig "$sd/up_rate_limit_us"
+            save_orig "$sd/down_rate_limit_us"
             write "$sd/up_rate_limit_us" 500
             write "$sd/down_rate_limit_us" 20000
         done
@@ -149,8 +232,12 @@ apply_duchamp_tuning() {
         freqs="$MALI_PLATFORM/available_frequencies"
         floor_file="$MALI_PLATFORM/min_freq"
         if [ -r "$freqs" ] && [ -w "$floor_file" ]; then
-            floor=$(tr ' ' '\n' < "$freqs" | sort -n | sed -n '2p')
+            # tr's SPACE class covers space/tab/newline/CR/FF/VT, unlike
+            # a literal ' ' — some kernels delimit available_frequencies
+            # with tabs or newlines instead of spaces.
+            floor=$(tr '[:space:]' '\n' < "$freqs" | grep -v '^$' | sort -n | sed -n '2p')
             if [ -n "$floor" ]; then
+                save_orig "$floor_file"
                 write "$floor_file" "$floor"
             else
                 warn "  GPU floor: couldn't parse available_frequencies"
@@ -213,6 +300,11 @@ apply_smooth_touch() {
 apply_parallel_anim() {
     [ "$PARALLEL_ANIM" != "1" ] && return
     echo "→ parallel animation"
+    if [ "$IS_HYPEROS" != "1" ]; then
+        warn "  HyperOS-only feature, skipped on $ROM"
+        return
+    fi
+    save_setting_orig system deviceLevelList settings_deviceLevelList
     settings put system deviceLevelList "v:1,c:3,g:3" 2>/dev/null
     say "  deviceLevelList set to v:1,c:3,g:3 (reboot recommended)"
 }
@@ -225,6 +317,11 @@ apply_parallel_anim() {
 apply_launcher_anim() {
     [ "$LAUNCHER_ANIM_RATE" != "1" ] && return
     echo "→ launcher animation rate"
+    if ! pm path com.miui.home >/dev/null 2>&1; then
+        warn "  com.miui.home not present on this ROM, skipped"
+        return
+    fi
+    save_setting_orig system miui_home_animation_rate settings_miui_home_animation_rate
     settings put system miui_home_animation_rate 1 2>/dev/null
     say "  miui_home_animation_rate set to 1 (force-stop the launcher, or reboot, to see it)"
 }
@@ -232,7 +329,12 @@ apply_launcher_anim() {
 # ── Priority Apps — background-restriction exemption, kernel-independent ──
 apply_priority_apps() {
     apps="$PRIORITY_APPS"
-    [ "$TG_LAG_FIX" = "1" ] && apps="$apps org.telegram.messenger"
+    if [ "$TG_LAG_FIX" = "1" ]; then
+        case " $apps " in
+            *" org.telegram.messenger "*) ;;  # already present, don't duplicate
+            *) apps="$apps org.telegram.messenger" ;;
+        esac
+    fi
     apps="$(echo "$apps" | xargs)"
     if [ -z "$apps" ]; then
         return
@@ -266,12 +368,19 @@ update_live_info() {
     rate_status="stock"
     [ "$REPORT_RATE_MODE" = "1" ] && rate_status="boosted"
 
-    # dumpsys display lists every supported mode's fps, not just the
-    # active one — grabbing the first match was the 60-vs-120 bug.
-    # Taking the highest value found is a better heuristic: the WebUI
-    # is actively being interacted with when this runs, so the display
-    # is very likely at (or near) its max rate at that moment.
-    refresh=$(dumpsys display 2>/dev/null | grep -o 'fps=[0-9]*\.[0-9]*' | cut -d= -f2 | sort -rn | head -1)
+    # dumpsys SurfaceFlinger reports the currently-active mode's
+    # refresh rate directly ("refresh-rate: NN.NN fps"), unlike
+    # `dumpsys display`'s per-mode fps list which enumerates every
+    # supported mode (taking the max there just re-reports the
+    # display's ceiling, not what it's actually running at).
+    refresh=$(dumpsys SurfaceFlinger 2>/dev/null | grep -o 'refresh-rate:[[:space:]]*[0-9.]*' | head -1 | grep -o '[0-9.]*$')
+    if [ -z "$refresh" ]; then
+        # Fallback for devices where that line format differs: the
+        # active display mode's ID cross-referenced against its own
+        # fps entry, still per-mode rather than a blind max.
+        refresh=$(dumpsys display 2>/dev/null | grep -o 'mActiveModeId=[0-9]*' | head -1 | grep -o '[0-9]*')
+        [ -n "$refresh" ] && refresh="mode $refresh"
+    fi
     [ -z "$refresh" ] && refresh="?"
 
     mem_total_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null)
@@ -284,7 +393,7 @@ update_live_info() {
         ram="?"
     fi
 
-    desc="Touch: $rate_status · ${refresh}Hz · RAM $ram · kernel $kernel · $DEVICE_PROFILE"
+    desc="Touch: $rate_status · ${refresh}Hz · RAM $ram · $ROM · $DEVICE_PROFILE"
     sed -i "s|^description=.*|description=$desc|" "$PROP" 2>/dev/null
 }
 
@@ -316,3 +425,5 @@ update_live_info
 
 echo "── done ──"
 log -p i -t "$LOGTAG" "apply.sh completed (profile=$DEVICE_PROFILE)."
+
+[ "$_HT_ACQUIRED_HERE" = "1" ] && ht_lock_release

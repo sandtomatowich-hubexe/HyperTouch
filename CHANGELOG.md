@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.4
+
+- Fixed `write()` silently reporting success when a node passed the writability check but the actual write failed (permission denied mid-write, read-only remount, write-once node) — now reports the real outcome
+- Fixed PowerKeeper revert/uninstall: re-enabling only the `.statemachine.PowerStateMachineService` component didn't bring the package back after `POWERKEEPER_FULL_DISABLE` had disabled it entirely — both revert and uninstall now re-enable the package itself first
+- Revert now restores actual pre-tweak values (CPU governor, GPU governor/floor, CPU rate limits, thermal `sconfig`, `deviceLevelList`, `miui_home_animation_rate`, and the battery temp spoof node) instead of only covering PowerKeeper/animation-scale/touch-rate — each node's original value is captured once, the first time apply.sh touches it, and restored from that on revert
+- Fixed GPU frequency parsing only splitting on spaces — `available_frequencies` delimited by tabs/newlines on some kernels broke floor detection
+- Fixed refresh-rate detection reading the display's max advertised mode instead of the currently active one (was `dumpsys display`'s per-mode fps list, sorted for the highest value — now reads SurfaceFlinger's active-mode line directly)
+- Fixed a race between config writes (WebUI toggles, `action.sh enable/disable/reset`) and `apply.sh` reading `settings.conf` — both now share one lock (`lock.sh`), where before only `apply.sh`'s own run was guarded and a config write could land mid-read
+- Lock now checks whether the process holding it is still alive (via its PID) and reclaims immediately if not, rather than always waiting out the full stale-lock timeout
+- Fixed Telegram being added twice to the effective priority-apps list if it was already present in `PRIORITY_APPS` and `TG_LAG_FIX` was also on
+- `service.sh`'s boot-completed wait now times out (10 min) instead of waiting forever if `sys.boot_completed` never reaches `1`
+- VM/ZRAM tweaks (swappiness, read-ahead, page-cluster, scheduler autogroup) are now off by default and gated behind `VM_TWEAKS_ENABLED` — previously ran unconditionally on every device regardless of profile; `swappiness` is now configurable via `SWAPPINESS` (was hardcoded to 100)
+- `read_ahead_kb` tuning (when enabled) is now scoped to `zram`/`mmcblk`/`sd*` queues instead of every writable block-device queue on the system
+- `settings.conf` schema bumped to version 4 for the two new VM/ZRAM keys
+
 ## v2.3
 
 - Removed MIUI Optimization entirely — tested, didn't help TG lag, and users reported it made the UI worse to live with

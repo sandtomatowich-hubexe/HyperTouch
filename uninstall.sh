@@ -7,6 +7,11 @@
 
 CONF="${0%/*}/settings.conf"
 
+# Same gap as action.sh's old revert: POWERKEEPER_FULL_DISABLE disables
+# the whole package (pm disable-user com.miui.powerkeeper), not just
+# this one component, so uninstall needs to re-enable the package too
+# or PowerKeeper stays off after the module is gone.
+pm enable com.miui.powerkeeper >/dev/null 2>&1
 pm enable com.miui.powerkeeper/.statemachine.PowerStateMachineService >/dev/null 2>&1
 
 if command -v resetprop >/dev/null 2>&1; then
