@@ -1,3 +1,12 @@
+<p align="center">
+  <img src="./assets/hypertouch-logo.png" width="320" alt="HyperTouch">
+</p>
+
+<h1 align="center">HyperTouch</h1>
+
+<p align="center">
+  Touch response and system responsiveness tuning for Android
+</p>
 # HyperTouch
 
 Touch response and system responsiveness tuning for **Poco X6 Pro / Redmi K70E (duchamp)**, with experimental support for **Poco X7 Pro (rodin)** — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
