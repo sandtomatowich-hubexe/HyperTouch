@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.0.1 — hotfix
+
+- Fixed real navigation lag in the WebUI: `backdrop-filter` on the app bar and nav bar was set to *transition*, which forces a full re-blur of everything underneath on every animation frame — very expensive, and was firing on every scroll frame and every tab switch at once. Blur intensity now switches in one step instead of animating; blur radius also reduced (was pushed higher than necessary in a previous round)
+- Fixed "Boosted" text rendering dark/illegible in dark mode: `<button class="hero">` was picking up the browser's default UA button text color instead of the theme's text color — inherited CSS color doesn't override a browser default on the same element. All buttons now explicitly inherit color/background from their parent context
+- Fixed ROM version showing only the short marketing name ("OS3.0") instead of the full build string ("OS3.0.304.0WNLCNXM") — now prefers `ro.mi.os.version.incremental`/`ro.build.version.incremental` when available, in both `apply.sh` and the WebUI
+- Fixed broken refresh-rate detection producing nonsense output ("mode 3Hz") in `module.prop`'s live description — the `dumpsys SurfaceFlinger` regex this relied on doesn't match reliably across devices
+- Removed refresh-rate from `module.prop`'s description entirely; replaced with the actual touch report rate read back directly from the touch driver node (e.g. "480HZ"), which reports a real, confirmed value on read rather than being inferred from our own config
+- WebUI's Home page "Refresh Rate" stat replaced with "Touch Rate" for the same reason — reads the real node instead of the unreliable display-refresh-rate probe
+- Updated the PowerKeeper Full Disable warning (WebUI, `apply.sh` log output, README) to explicitly mention that it also disables Game Turbo's boost/Wild Boost profiles — confirmed they're part of the same `com.miui.powerkeeper` package, not a separate app, so there's no way to keep one and not the other with a full package disable
+
 ## v3.0.0
 
 Full WebUI rebuild — new visual design, new navigation model, several real bugs fixed along the way. Backend (`apply.sh`/`action.sh`/`settings.conf`) is unchanged in behavior except where noted; this is primarily a WebUI release.

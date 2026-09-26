@@ -25,7 +25,7 @@ body{
   justify-content:center;
   overscroll-behavior-y: none;
 }
-button{ font-family:inherit; }
+button{ font-family:inherit; color:inherit; background:none; border:none; padding:0; text-align:inherit; }
 [hidden]{ display:none !important; }
 
 .app{
@@ -73,12 +73,17 @@ button{ font-family:inherit; }
   backdrop-filter: blur(6px) saturate(1.2);
   -webkit-backdrop-filter: blur(6px) saturate(1.2);
   box-shadow: 0 1px 0 transparent;
-  transition: background var(--dur-fast) ease, backdrop-filter var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  /* Only background/shadow animate — animating backdrop-filter itself
+     forces a full re-blur of everything underneath on every frame,
+     which was the real cause of navigation feeling laggy. The blur
+     radius now switches in one step (still visually fine, since it's
+     paired with the background-opacity fade covering the transition). */
+  transition: background var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 .appbar.scrolled{
   background:color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: blur(24px) saturate(1.6);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
   box-shadow: 0 1px 0 var(--border);
 }
 .brand{ display:flex; align-items:center; gap:10px; }
@@ -506,15 +511,14 @@ html[data-transition="aosp"] .page:not([hidden]) > :nth-child(n+7){ animation-de
 .tabbar-inner{
   pointer-events:auto;
   width:100%; max-width:448px;
-  background:color-mix(in srgb, var(--card) 62%, transparent);
-  backdrop-filter: blur(32px) saturate(1.7) brightness(1.05);
-  -webkit-backdrop-filter: blur(32px) saturate(1.7) brightness(1.05);
+  background:color-mix(in srgb, var(--card) 68%, transparent);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
   border:1px solid var(--border);
   border-radius:22px;
   box-shadow:var(--shadow-card);
   display:flex;
   padding:8px;
-  transition: backdrop-filter var(--dur-fast) ease;
 }
 .tab{
   flex:1;

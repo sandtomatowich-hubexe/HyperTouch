@@ -165,8 +165,13 @@ say "device: $DEVICE ($DEVICE_PROFILE profile)"
 detect_rom() {
     hyperos=$(getprop ro.mi.os.version.name 2>/dev/null)
     miui=$(getprop ro.miui.ui.version.name 2>/dev/null)
+    # ro.mi.os.version.name is only the short marketing name ("OS3.0");
+    # the fuller incremental build string ("OS3.0.304.0WNLCNXM") people
+    # actually look for lives in a separate prop that varies by build.
+    hyperos_full=$(getprop ro.mi.os.version.incremental 2>/dev/null)
+    [ -z "$hyperos_full" ] && hyperos_full=$(getprop ro.build.version.incremental 2>/dev/null)
     if [ -n "$hyperos" ]; then
-        echo "HyperOS $hyperos"
+        if [ -n "$hyperos_full" ]; then echo "HyperOS $hyperos_full"; else echo "HyperOS $hyperos"; fi
     elif [ -n "$miui" ]; then
         echo "MIUI $miui"
     elif [ -n "$(getprop ro.infinity.version 2>/dev/null)" ]; then
@@ -284,13 +289,13 @@ apply_powerkeeper() {
     # above: PowerKeeper (branded "Battery & Performance") is also
     # what caps some apps to 60Hz even on 120Hz-capable phones.
     # Disabling the whole app — not just the state-machine service —
-    # is the confirmed fix, but it's a bigger behavior change (loses
-    # the "Battery Saver" entry in per-app battery settings), so it's
-    # its own opt-in toggle rather than silently folded into the one
-    # above.
+    # is the confirmed fix, but it's a bigger behavior change: it also
+    # takes Game Turbo's boost/Wild Boost profiles down with it, since
+    # they're part of the same com.miui.powerkeeper package, not a
+    # separate app. Opt-in toggle rather than folded into the one above.
     if [ "$POWERKEEPER_FULL_DISABLE" = "1" ]; then
         pm disable-user --user 0 com.miui.powerkeeper >/dev/null 2>&1
-        say "  fully disabled (unlocks apps HyperOS caps to 60Hz)"
+        say "  fully disabled (unlocks apps HyperOS caps to 60Hz — also disables Game Turbo boost profiles, same package)"
     fi
 }
 
@@ -382,23 +387,25 @@ update_live_info() {
     [ -w "$PROP" ] || return
 
     kernel=$(uname -r 2>/dev/null | cut -d- -f1)
-    rate_status="stock"
-    [ "$REPORT_RATE_MODE" = "1" ] && rate_status="boosted"
 
-    # dumpsys SurfaceFlinger reports the currently-active mode's
-    # refresh rate directly ("refresh-rate: NN.NN fps"), unlike
-    # `dumpsys display`'s per-mode fps list which enumerates every
-    # supported mode (taking the max there just re-reports the
-    # display's ceiling, not what it's actually running at).
-    refresh=$(dumpsys SurfaceFlinger 2>/dev/null | grep -o 'refresh-rate:[[:space:]]*[0-9.]*' | head -1 | grep -o '[0-9.]*$')
-    if [ -z "$refresh" ]; then
-        # Fallback for devices where that line format differs: the
-        # active display mode's ID cross-referenced against its own
-        # fps entry, still per-mode rather than a blind max.
-        refresh=$(dumpsys display 2>/dev/null | grep -o 'mActiveModeId=[0-9]*' | head -1 | grep -o '[0-9]*')
-        [ -n "$refresh" ] && refresh="mode $refresh"
+    # Read the actual touch report rate back from the node itself
+    # rather than inferring "boosted"/"stock" from our own config —
+    # the node reports a real value on read (confirmed format:
+    # "touch report rate::480HZ"), so this shows what's genuinely
+    # active, not just what we last told it to be.
+    touch_rate="?"
+    if [ -r "$GOODIX_PATH" ]; then
+        touch_raw=$(cat "$GOODIX_PATH" 2>/dev/null)
+        touch_parsed=$(echo "$touch_raw" | grep -oE '[0-9]+HZ' | head -1)
+        if [ -n "$touch_parsed" ]; then
+            touch_rate="$touch_parsed"
+        elif echo "$touch_raw" | grep -qE '^[0-9]+$'; then
+            # Some builds' nodes just echo back the raw mode index on
+            # read instead of a formatted string — show that as-is
+            # rather than inventing a Hz number we can't confirm.
+            touch_rate="mode $touch_raw"
+        fi
     fi
-    [ -z "$refresh" ] && refresh="?"
 
     mem_total_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null)
     mem_avail_kb=$(awk '/MemAvailable/{print $2}' /proc/meminfo 2>/dev/null)
@@ -410,7 +417,7 @@ update_live_info() {
         ram="?"
     fi
 
-    desc="Touch: $rate_status · ${refresh}Hz · RAM $ram · $ROM · $DEVICE_PROFILE"
+    desc="Touch: $touch_rate · RAM $ram · $ROM · $DEVICE_PROFILE"
     sed -i "s|^description=.*|description=$desc|" "$PROP" 2>/dev/null
 }
 

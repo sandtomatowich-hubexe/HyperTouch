@@ -626,9 +626,16 @@
     document.getElementById("mProfile2").textContent = profileLabel.toLowerCase();
 
     // Mirrors apply.sh's detect_rom() so the WebUI shows the same
-    // answer even before the first apply has run.
+    // answer even before the first apply has run. ro.mi.os.version.name
+    // is only the short marketing name ("OS3.0") — the full incremental
+    // build string ("OS3.0.304.0WNLCNXM") lives in a separate prop that
+    // varies by HyperOS build, so try the known candidates in order and
+    // fall back to the short name rather than guess wrong.
     var romCmd = "hyperos=$(getprop ro.mi.os.version.name); miui=$(getprop ro.miui.ui.version.name);" +
-      "if [ -n \"$hyperos\" ]; then echo \"HyperOS $hyperos\";" +
+      "hyperos_full=$(getprop ro.mi.os.version.incremental);" +
+      "[ -z \"$hyperos_full\" ] && hyperos_full=$(getprop ro.build.version.incremental);" +
+      "if [ -n \"$hyperos\" ]; then " +
+        "if [ -n \"$hyperos_full\" ]; then echo \"HyperOS $hyperos_full\"; else echo \"HyperOS $hyperos\"; fi;" +
       "elif [ -n \"$miui\" ]; then echo \"MIUI $miui\";" +
       "elif [ -n \"$(getprop ro.infinity.version)\" ]; then echo \"InfinityX $(getprop ro.infinity.version)\";" +
       "elif [ -n \"$(getprop ro.lineage.version)\" ]; then echo \"LineageOS $(getprop ro.lineage.version)\";" +
@@ -640,12 +647,28 @@
     var rr = await ksuExec(romCmd);
     if (rr.errno === 0 && rr.stdout) document.getElementById("mRom").textContent = rr.stdout.trim();
 
-    // Refresh rate — mirrors apply.sh's fixed detection: reads the
-    // active mode's fps from SurfaceFlinger, not the max advertised.
-    var refreshCmd = "dumpsys SurfaceFlinger 2>/dev/null | grep -o 'refresh-rate:[[:space:]]*[0-9.]*' | head -1 | grep -o '[0-9.]*$'";
-    var rf = await ksuExec(refreshCmd);
-    var refreshVal = (rf.stdout || "").trim();
-    els.statRefresh.textContent = refreshVal ? Math.round(parseFloat(refreshVal)) + " Hz" : "—";
+    // Touch report rate — read back from whichever Goodix node
+    // actually exists (same auto-detect apply.sh does), rather than
+    // inferring "boosted"/"stock" from settings.conf. The node
+    // reports a real value on read (confirmed format: "touch report
+    // rate::480HZ" on some builds), so this shows what's genuinely
+    // active. Previously this stat read display refresh rate via
+    // `dumpsys SurfaceFlinger`, which proved unreliable on-device —
+    // touch rate from the node itself is a hard read, not a guess.
+    var touchCmd = "d=/sys/devices/platform/goodix_ts.0;" +
+      "if [ -r \"$d/goodix_ts_report_rate\" ]; then cat \"$d/goodix_ts_report_rate\";" +
+      "elif [ -r \"$d/switch_report_rate\" ]; then cat \"$d/switch_report_rate\";" +
+      "fi";
+    var tr = await ksuExec(touchCmd);
+    var touchRaw = (tr.stdout || "").trim();
+    var touchMatch = touchRaw.match(/(\d+)\s*HZ/i);
+    if (touchMatch){
+      els.statRefresh.textContent = touchMatch[1] + " Hz";
+    } else if (/^\d+$/.test(touchRaw)){
+      els.statRefresh.textContent = "mode " + touchRaw;
+    } else {
+      els.statRefresh.textContent = "—";
+    }
   }
 
   async function loadModuleProp(){

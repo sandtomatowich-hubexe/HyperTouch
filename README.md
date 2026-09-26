@@ -1,16 +1,6 @@
-<p align="center">
-  <img src="./assets/hypertouch-logo.png" width="320" alt="HyperTouch">
-</p>
+# HyperTouch
 
-<h1 align="center">HyperTouch</h1>
-
-<p align="center">
-  Touch response and system responsiveness tuning for Android
-</p>
-
-## What is HyperTouch?
-
-HyperTouch is a module made for HyperOS based ROMs for Touch response and system responsiveness tuning specially for **Poco X6 Pro / Redmi K70E (duchamp)**, with experimental support for **Poco X7 Pro (rodin)** — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
+Touch response and system responsiveness tuning for **Poco X6 Pro / Redmi K70E (duchamp)**, with experimental support for **Poco X7 Pro (rodin)** — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
 
 Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **APatch**. The WebUI specifically needs a manager with a KSU-bridge WebView (KernelSU Next, MMRL, APatch's own, or a standalone viewer like KsuWebUIStandalone) — plain Magisk has no in-app WebView, so `action.sh` from a root shell is the way to control the module there instead.
 
@@ -20,7 +10,7 @@ Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **
 |---|---|---|---|
 | Boosted touch report rate | Kernel (sysfs) | ✅ Working | Node auto-detected (`goodix_ts_report_rate` or `switch_report_rate`) — see [Device support](#device-support) |
 | Disable PowerKeeper throttling | System | ✅ Working | No-ops safely on non-HyperOS ROMs |
-| PowerKeeper full disable | System | ✅ Working | Community-verified fix for apps HyperOS caps to 60Hz — see [TG Lag Fix](#tg-lag-fix) |
+| PowerKeeper full disable | System | ✅ Working | Community-verified fix for apps HyperOS caps to 60Hz — also disables Game Turbo boost profiles, same package. See [TG Lag Fix](#tg-lag-fix) |
 | Battery temp override | Kernel (sysfs) | ✅ Working, opt-in | Off by default — hides real overheating from the system |
 | Fast CPU response | Kernel (sysfs) | ✅ Working | schedutil rate-limit tuning, confirmed/named-experimental devices only |
 | GPU floor | Kernel (sysfs) | ✅ Working, opt-in | Reads real OPP steps at runtime rather than guessing a frequency |
@@ -126,6 +116,8 @@ Sluggish scrolling in Telegram (and some other apps) after HyperOS updates is a 
 
 1. **v2.2**: exempted Telegram from Doze/App Standby/PowerKeeper background limits, then also tried disabling MIUI Optimization. Tested on real hardware — neither moved the needle. MIUI Optimization is now removed from HyperTouch entirely.
 2. **v2.3**: `TG_LAG_FIX` now bundles the *verified* PowerKeeper full-disable instead (see [Features](#features)) — HyperOS caps some apps to 60Hz even on 120Hz phones via PowerKeeper specifically, which is a much more direct match for "scrolling doesn't feel as smooth as it should" than a background-execution toggle ever was. `PowerKeeper full disable` is also available standalone in Tweaks → System if you want it without the Telegram-specific framing.
+
+**Trade-off to know about**: `com.miui.powerkeeper` is also the package behind Game Turbo's boost/Wild Boost profiles — they're not a separate app, they're a feature inside PowerKeeper. Fully disabling the package (whether via `TG_LAG_FIX` or the standalone toggle) disables Game Turbo's boost profiles along with it. There's no way to keep one and not the other with this approach, since it's one `pm disable-user` on one package.
 
 One thing no root tweak can reach: Telegram's own animated chat background is a real, developer-acknowledged performance cost (confirmed on Telegram's own bug tracker), and the community workaround is a static wallpaper set *inside Telegram itself* (Settings → Chat Settings). That's in-app rendering, not something HyperTouch can touch from the outside — worth trying alongside the toggle above, not instead of it.
 
