@@ -5,3 +5,4 @@ versionCode=300
 author=Sep
 description=Touch + performance tuning for Poco X6 Pro / Poco X7 Pro (duchamp/rodin). Rebuilt card-dashboard WebUI, activity log, swipe navigation, live-glass nav, auto-detected touch report-rate node.
 updateJson=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/update.json
+banner=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/assets/hypertouch-logo.png
