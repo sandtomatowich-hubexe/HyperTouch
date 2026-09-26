@@ -1,5 +1,50 @@
 # Changelog
 
+## v3.0.0
+
+Full WebUI rebuild — new visual design, new navigation model, several real bugs fixed along the way. Backend (`apply.sh`/`action.sh`/`settings.conf`) is unchanged in behavior except where noted; this is primarily a WebUI release.
+
+**Redesign**
+- Entirely new card-dashboard visual style: rounded cards, indigo/blue gradient accent, floating glass nav — replaces the old flat-list layout
+- Navigation restructured to 4 tabs (Home, Tweaks, Settings, About) plus a Priority Apps page reached via a Home quick-action tap; previously a flat Home/Tweaks/Apps/Settings tab set
+- Home page now shows live stats (report-rate status, PowerKeeper mode, refresh rate, device, kernel) and one-tap Quick Actions instead of a plain settings list
+- About page reorganized into icon-led grouped cards (Module / Device / Links) instead of plain key-value rows
+- Device name now shown as a friendly marketing name ("Poco X6 Pro", "Poco X7 Pro") instead of the raw `ro.product.model` code; raw code still shown on the About page for support/debugging
+
+**Motion & navigation**
+- Added real swipe-gesture navigation between tabs (drag left/right on Home/Tweaks/Settings/About), not just tap
+- Added 4 page-transition styles under Settings → Page Transition: miuix (spring/scale), AOSP (shared-axis slide), Scale, and None
+- Added Exit Direction control (follow gesture / always right / always left) governing which way miuix/AOSP transitions slide
+- Fixed real lag in the previous WebUI: every card on a page independently ran its own entrance animation on every tab switch, all firing at once — now the page transitions as one unit, with a lightweight CSS-only staggered card entrance that can't get stuck (a prior `IntersectionObserver`-based version of this was removed after it caused visible text/card overlap — observing an element the same tick it goes from hidden to visible gave the browser a stale bounding box, leaving some cards permanently offset)
+- Fixed the WebUI's document not actually being scrollable in some cases — `html, body` were set to a hard `height:100%` (clips content) instead of `min-height:100%`, which also silently broke the scroll-reactive nav bar blur below
+
+**Glass / visual polish**
+- Top app bar and bottom nav bar now use real `backdrop-filter` blur (live glass), not a flat translucent fill
+- Top app bar blur now intensifies with a hairline shadow once the page has actually scrolled, instead of a constant flat blur regardless of scroll position
+- Bottom nav bar blur intensity increased substantially for a stronger live-glass effect
+
+**New: Activity log**
+- Added a terminal-icon button (top-left of the app bar) opening a slide-over Activity Log panel
+- Logs every setting toggle, Apply/Reset/Revert action, and load error with a timestamp and status color
+- Persists to `webui/activity.log` on the module itself, so history survives closing and reopening the WebUI — useful for debugging what actually changed before something broke
+
+**Removed**
+- Smooth Touch section removed from Tweaks entirely — redundant with Developer Options' own animation-scale controls. `SMOOTH_TOUCH_MODE` remains in `settings.conf`/`apply.sh` for backward compatibility; nothing in the WebUI writes to it anymore
+- Tweaks tab icon changed from a terminal/prompt glyph to a tuning-sliders icon — the old one visually collided with the new Activity Log button, which uses the terminal glyph now
+
+**New: VM/ZRAM tuning surfaced in the WebUI**
+- Tweaks → Memory/ZRAM section for `VM_TWEAKS_ENABLED` and `SWAPPINESS` (both added to the backend in v2.4, previously had no WebUI control)
+
+**Touch report-rate node auto-detection**
+- `apply.sh` now checks for `goodix_ts_report_rate` first, falling back to `switch_report_rate`, instead of hardcoding one path — some AOSP-based Goodix driver builds reportedly expose the former; HyperOS/duchamp confirmed only has the latter
+- `customize.sh` probes and reports which node it found directly in the flash log, so you know at install time rather than only after the first apply
+
+**Installer (`customize.sh`)**
+- Now detects the root manager (KernelSU/APatch/Magisk) and notes that the WebUI specifically needs a KSU-bridge WebView, which plain Magisk doesn't have
+- Added an architecture check (informational — nothing in this module is actually arch-specific, but flags unexpected ABIs)
+- `webui/ui.conf` (WebUI appearance preferences) now carried forward on updates, same as `settings.conf` already was
+- Explicit permissions set on `webui/` so it has the module's own ownership/context from install rather than whatever context first-run `app.js` would leave it with
+
 ## v2.4
 
 - Fixed `write()` silently reporting success when a node passed the writability check but the actual write failed (permission denied mid-write, read-only remount, write-once node) — now reports the real outcome

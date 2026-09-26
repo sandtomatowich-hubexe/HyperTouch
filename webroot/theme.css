@@ -5,11 +5,12 @@
 */
 
 :root{
-  --font-sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "Roboto Mono", "SFMono-Regular", Menlo, Consolas, monospace;
 
-  --warn:#ffb454;
-  --warn-soft: rgba(255,180,84,.14);
+  --good:#22B07D;
+  --warn:#E0913F;
+  --danger:#E05C5C;
 
   /* Motion. --dur-off is not referenced directly — [data-anim="off"]
      kills animation/transition duration globally instead, see style.css. */
@@ -24,58 +25,66 @@ html[data-anim="reduced"]{
   --dur-slow:.08s;
 }
 
-/* ---- Dark (default) ---- */
-html[data-mode="dark"]{
-  --bg:#101418;
-  --nav-bg: rgba(23,27,32,.70);
-  --surface:#1b2025;
-  --surface-2:#20262c;
-  --border:#2b3238;
-  --text:#e7ecef;
-  --text-dim:#9aa5ad;
-  --text-faint:#5f6a72;
-  --shadow-card: none;
-
-  /* Signature default accent — used unless Monet is on and succeeds. */
-  --accent-default:#a6c8ff;
-}
-
-/* ---- Light ---- */
+/* ---- Light (default) ---- */
 html[data-mode="light"]{
-  --bg:#f4f5f7;
-  --nav-bg: rgba(255,255,255,.72);
-  --surface:#ffffff;
-  --surface-2:#eef0f3;
-  --border:#e1e4e8;
-  --text:#14181c;
-  --text-dim:#5b6570;
-  --text-faint:#8b95a1;
-  --shadow-card: 0 1px 3px rgba(20,24,28,.06), 0 1px 2px rgba(20,24,28,.05);
+  --bg:#F4F4FA;
+  --card:#FFFFFF;
+  --card-2:#F8F8FC;
+  --border: rgba(20,20,40,.07);
+  --text:#16171F;
+  --text-dim:#8A8C9A;
+  --text-faint:#B4B6C2;
+  --shadow-card: 0 1px 2px rgba(16,17,32,.04), 0 8px 24px -12px rgba(16,17,32,.10);
+  --good-soft: rgba(34,176,125,.12);
+  --warn-soft: rgba(224,145,63,.14);
+  --danger-soft: rgba(224,92,92,.12);
 
-  --accent-default:#3d6fd6;
+  --accent-default-1:#6C5CE7;
+  --accent-default-2:#4E7FFF;
 }
 
-/* Active accent: defaults to the mode's signature color. When Monet
-   extraction succeeds, app.js overrides --accent directly on <html>
-   inline style, which wins over this regardless of mode. --accent-soft
-   and --accent-on are *derived* from whatever --accent currently is,
-   so Monet colors automatically get correct tinted/on-accent tones
-   without any extra JS color math. */
+/* ---- Dark ---- */
+html[data-mode="dark"]{
+  --bg:#0F0F15;
+  --card:#1A1B24;
+  --card-2:#20212C;
+  --border: rgba(255,255,255,.07);
+  --text:#F2F2F6;
+  --text-dim:#8C8DA0;
+  --text-faint:#5C5D6E;
+  --shadow-card: 0 1px 2px rgba(0,0,0,.25), 0 8px 24px -12px rgba(0,0,0,.55);
+  --good-soft: rgba(34,176,125,.16);
+  --warn-soft: rgba(224,145,63,.18);
+  --danger-soft: rgba(224,92,92,.16);
+
+  --accent-default-1:#7C6DF2;
+  --accent-default-2:#5C8CFF;
+}
+
+/* Active accent: defaults to the mode's signature gradient pair. When
+   Monet extraction succeeds, app.js overrides --accent-1/--accent-2
+   directly on <html> inline style, which wins over this regardless of
+   mode. --accent-soft is *derived*, so Monet colors automatically get
+   a correct tinted tone with no extra JS color math. --accent stays
+   as a single-color alias (icons, focus rings, toggle fill) pointed
+   at --accent-1. */
 html{
-  --accent: var(--accent-default);
-  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
-  --accent-on: color-mix(in srgb, var(--accent) 22%, black);
-  --radius-card:18px;
-  --radius-control:999px;
+  --accent-1: var(--accent-default-1);
+  --accent-2: var(--accent-default-2);
+  --accent: var(--accent-1);
+  --accent-soft: color-mix(in srgb, var(--accent-1) 11%, transparent);
+  --radius-lg:22px;
+  --radius-md:16px;
+  --radius-sm:11px;
 }
 
 /* True superellipse corners where the browser supports it — falls back
    to the plain border-radius above everywhere else. */
 @supports (corner-shape: squircle){
-  .card, .hero-card, .stat-card, .switch, .segmented, .seg-btn,
-  button.primary, button.secondary, nav.navbar, .chip,
-  .chip-input, .chip-add, .dialog, .row-icon, .hero-icon-badge, .locked-tag,
-  .wallpaper-swatch{
+  .card, .hero, .stat-card, .action-card, .apply-btn, .secondary-btn,
+  .status-pill, .seg-btn, .segmented, .switch, .chip, .chip-input,
+  .chip-add, .dialog, .action-icon, .hero-icon, .brand-mark,
+  .wallpaper-swatch, .tabbar-inner{
     corner-shape:squircle;
   }
 }

@@ -1,288 +1,314 @@
-<!doctype html>
-<html lang="en" data-mode="dark" data-wallpaper="none" data-anim="full">
+<!DOCTYPE html>
+<html lang="en" data-mode="light" data-wallpaper="none" data-anim="full">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>HyperTouch</title>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute">
-  <filter id="glass-distortion" x="-20%" y="-20%" width="140%" height="140%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="2" seed="11" result="noise"/>
-    <feGaussianBlur in="noise" stdDeviation="3" result="blurredNoise"/>
-    <feDisplacementMap in="SourceGraphic" in2="blurredNoise" scale="18" xChannelSelector="R" yChannelSelector="G"/>
-  </filter>
-</svg>
 
 <div class="wallpaper wp-none" id="wallpaperLayer"></div>
 
 <div class="app" id="app">
 
-  <header class="topbar">
-    <div class="brand"><span class="dot" id="liveDot"></span>HyperTouch</div>
-    <div class="page-title" id="pageTitle">Home</div>
-    <div class="page-sub" id="pageSub">
-      <span id="pageSubText" hidden></span>
-      <span id="pageSubDevice"><b id="devModel">—</b> · <span id="devCode">duchamp</span></span>
+  <header class="appbar">
+    <div class="brand">
+      <button class="shell-btn" id="shellBtn" aria-label="Open activity log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7.5 9.5 3 2.5-3 2.5"/><path d="M13 15h4"/></svg>
+      </button>
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+      </div>
+      <div class="brand-name">HyperTouch</div>
     </div>
+    <div class="status-pill" id="livePill"><span class="dot"></span><span id="livePillText">Checking…</span></div>
   </header>
 
+  <div class="page-head">
+    <div class="eyebrow" id="eyebrow"><b id="devCode">duchamp</b> · <span id="mProfile2">—</span> profile</div>
+    <h1 id="pageTitle">Home</h1>
+    <p id="pageSub">Touch + performance tuning for <span id="devModel">your device</span>.</p>
+  </div>
+
   <main>
+
     <!-- ============ HOME ============ -->
     <section class="page" id="page-home">
-      <div class="hero-grid">
-        <button class="hero-card skel" id="heroReportRate">
-          <div class="hero-icon-badge"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
-          <div>
-            <div class="hero-status" id="heroReportRateStatus">Boosted</div>
-            <div class="hero-label">Touch report rate · tap to toggle</div>
-          </div>
-        </button>
-        <div class="hero-stack">
-          <div class="stat-card skel">
-            <div class="stat-value" id="statProfile">—</div>
-            <div class="stat-label">Device profile</div>
-          </div>
-          <div class="stat-card skel">
-            <div class="stat-value" id="statSmooth">—</div>
-            <div class="stat-label">Smooth touch</div>
-          </div>
+
+      <button class="hero skel" id="heroReportRate">
+        <div class="hero-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+        </div>
+        <div class="hero-body">
+          <div class="hero-label">TOUCH REPORT RATE</div>
+          <div class="hero-title" id="heroReportRateStatus">—</div>
+          <div class="hero-sub">Tap to toggle boosted sampling</div>
+        </div>
+        <svg class="hero-chev" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+
+      <div class="stat-grid">
+        <div class="stat-card skel">
+          <div class="stat-label">POWERKEEPER</div>
+          <div class="stat-value small" id="statPowerkeeper">—</div>
+        </div>
+        <div class="stat-card skel">
+          <div class="stat-label">REFRESH RATE</div>
+          <div class="stat-value" id="statRefresh">—</div>
+        </div>
+        <div class="stat-card skel">
+          <div class="stat-label">DEVICE</div>
+          <div class="stat-value small" id="statDevice">—</div>
+        </div>
+        <div class="stat-card skel">
+          <div class="stat-label">KERNEL</div>
+          <div class="stat-value small" id="statKernel">—</div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="row">
-          <div class="row-icon icon-green"><svg viewBox="0 0 24 24"><path d="M12 13l4-4"/><path d="M4 19a8 8 0 1116 0"/><circle cx="12" cy="13" r="1"/></svg></div>
-          <div class="row-text">
-            <div class="label">Smooth Touch</div>
-            <div class="sub">System animation speed — userspace, no kernel dependency.</div>
+      <div class="section-label">QUICK ACTIONS</div>
+      <div class="action-card">
+        <div class="action-row" id="qaPowerkeeper">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
           </div>
+          <div class="action-body">
+            <div class="action-title">PowerKeeper</div>
+            <div class="action-sub">Background throttling disabled</div>
+          </div>
+          <div class="switch skel" id="swPowerkeeperHome"></div>
         </div>
-        <div class="segmented" id="segSmoothHome">
-          <button class="seg-btn" data-val="0">Stock</button>
-          <button class="seg-btn" data-val="1">Fast</button>
-          <button class="seg-btn" data-val="2">Instant</button>
+        <div class="action-row" id="qaFastCpu">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 18h.01"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Fast CPU Response</div>
+            <div class="action-sub">Quicker ramp on touch input</div>
+          </div>
+          <div class="switch skel" id="swFastCpuHome"></div>
+        </div>
+        <div class="action-row clickable" id="qaPriorityApps" data-goto="apps">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Priority Apps</div>
+            <div class="action-sub" id="qaPriorityAppsSub">—</div>
+          </div>
+          <svg class="action-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </div>
       </div>
-      <button class="primary" id="applyBtn">Apply now</button>
-      <div class="status" id="status">Loading current settings…</div>
+
+      <button class="apply-btn" id="applyBtn">Apply now</button>
+      <div class="status-line" id="status">Loading current settings…</div>
     </section>
 
     <!-- ============ TWEAKS ============ -->
     <section class="page" id="page-tweaks" hidden>
-      <div class="section-title">Sampling</div>
-      <div class="card">
-        <div class="eyebrow">/sys/devices/platform/goodix_ts.0/switch_report_rate</div>
-        <div class="row">
-          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
-          <div class="row-text">
-            <div class="label">Boosted report rate</div>
-            <div class="sub">Stock rate is used when off.</div>
+
+      <div class="section-label">SAMPLING</div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
           </div>
-          <div class="switch" id="swReportRate2"></div>
+          <div class="action-body">
+            <div class="action-title">Boosted Report Rate</div>
+            <div class="action-sub">Higher touch sampling frequency</div>
+          </div>
+          <div class="switch skel" id="swReportRate2"></div>
         </div>
       </div>
 
-      <div class="section-title">System</div>
-      <div class="card">
-        <div class="eyebrow">com.miui.powerkeeper<wbr>/.statemachine<wbr>.PowerStateMachineService</div>
-        <div class="row">
-          <div class="row-icon icon-violet"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/></svg></div>
-          <div class="row-text">
-            <div class="label">Disable PowerKeeper throttling</div>
-            <div class="sub">No-ops safely on non-HyperOS ROMs.</div>
+      <div class="section-label">SYSTEM</div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
           </div>
-          <div class="switch" id="swPowerkeeper"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="eyebrow">com.miui.powerkeeper (whole package)</div>
-        <div class="row">
-          <div class="row-icon icon-orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 6v4"/></svg></div>
-          <div class="row-text">
-            <div class="label">PowerKeeper full disable</div>
-            <div class="sub warn">Community-verified fix for HyperOS capping some apps to 60Hz on 120Hz phones. Bigger than the toggle above — loses the "Battery Saver" entry in per-app battery settings.</div>
+          <div class="action-body">
+            <div class="action-title">Disable PowerKeeper</div>
+            <div class="action-sub">Stops the statemachine component throttling background apps</div>
           </div>
-          <div class="switch warn" id="swPowerkeeperFull"></div>
+          <div class="switch skel" id="swPowerkeeper"></div>
         </div>
-      </div>
-      <div class="card">
-        <div class="eyebrow">/sys/class/power_supply/bms/temp</div>
-        <div class="row">
-          <div class="row-icon icon-orange"><svg viewBox="0 0 24 24"><path d="M12 14.5V5a2 2 0 10-4 0v9.5a4 4 0 104 0z"/></svg></div>
-          <div class="row-text">
-            <div class="label">Battery temp override</div>
-            <div class="sub warn">Hides real overheating from the system — leave off unless you know what you're doing.</div>
+        <div class="action-row">
+          <div class="action-icon warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
           </div>
-          <div class="switch warn" id="swBatterySpoof"></div>
-        </div>
-      </div>
-
-      <div class="section-title">Smooth Touch</div>
-      <div class="card">
-        <div class="row">
-          <div class="row-icon icon-green"><svg viewBox="0 0 24 24"><path d="M12 13l4-4"/><path d="M4 19a8 8 0 1116 0"/><circle cx="12" cy="13" r="1"/></svg></div>
-          <div class="row-text">
-            <div class="label">Animation scale</div>
-            <div class="sub">Userspace only — works on any device, any kernel.</div>
+          <div class="action-body">
+            <div class="action-title">PowerKeeper Full Disable</div>
+            <div class="action-sub">Disables the whole package, not just the component. Removes the per-app Battery Saver entry.</div>
           </div>
+          <div class="switch warn skel" id="swPowerkeeperFull"></div>
         </div>
-        <div class="segmented" id="segSmoothTweaks">
-          <button class="seg-btn" data-val="0">Stock</button>
-          <button class="seg-btn" data-val="1">Fast</button>
-          <button class="seg-btn" data-val="2">Instant</button>
+        <div class="action-row">
+          <div class="action-icon warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v6l-2 2v6a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v-6l-2-2V4"/><path d="M10 4h4"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Spoof Battery Temperature</div>
+            <div class="action-sub">Hides real overheating from the system. Only enable if you understand the risk.</div>
+          </div>
+          <div class="switch warn skel" id="swBatterySpoof"></div>
         </div>
       </div>
 
-      <div class="section-title">Duchamp Tuning</div>
-      <div class="card">
-        <div class="eyebrow">schedutil up_rate_limit_us / down_rate_limit_us</div>
-        <div class="row">
-          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
-          <div class="row-text">
-            <div class="label">Fast CPU response</div>
-            <div class="sub">Ramps CPU frequency up quicker on touch input. Small battery cost.</div>
+      <div class="section-head">
+        <div class="section-label">DUCHAMP TUNING</div>
+        <div class="section-note">Confirmed / named-experimental devices only — no-ops elsewhere.</div>
+      </div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 18h.01"/></svg>
           </div>
-          <div class="switch" id="swFastCpu"></div>
+          <div class="action-body">
+            <div class="action-title">Fast CPU Response</div>
+            <div class="action-sub">Ramps CPU frequency up faster on touch input, small battery cost</div>
+          </div>
+          <div class="switch skel" id="swFastCpu"></div>
+        </div>
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 4-8"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">GPU Floor</div>
+            <div class="action-sub">Keeps GPU off its lowest step to reduce micro-stutter. Bigger battery cost.</div>
+          </div>
+          <div class="switch skel" id="swGpuFloor"></div>
         </div>
       </div>
-      <div class="card">
-        <div class="eyebrow">mali devfreq min_freq</div>
-        <div class="row">
-          <div class="row-icon icon-teal"><svg viewBox="0 0 24 24"><path d="M3 17l4-3 3 5 4-10 3 6 4-4"/><path d="M3 20h18" stroke-dasharray="2 2"/></svg></div>
-          <div class="row-text">
-            <div class="label">GPU floor</div>
-            <div class="sub">Keeps the GPU off its lowest step to cut micro-stutter. Bigger battery cost than the CPU tweak above.</div>
+
+      <div class="section-head">
+        <div class="section-label">PARALLEL ANIMATION</div>
+        <div class="section-note">Reboot recommended after changing these.</div>
+      </div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           </div>
-          <div class="switch" id="swGpuFloor"></div>
+          <div class="action-body">
+            <div class="action-title">Parallel Animation</div>
+            <div class="action-sub">Raises deviceLevelList, the animation-tier key HyperOS reads</div>
+          </div>
+          <div class="switch skel" id="swParallelAnim"></div>
+        </div>
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Launcher Animation Rate</div>
+            <div class="action-sub">Same idea, scoped to com.miui.home specifically</div>
+          </div>
+          <div class="switch skel" id="swLauncherAnim"></div>
         </div>
       </div>
-      <div class="card">
-        <div class="eyebrow">settings put system deviceLevelList</div>
-        <div class="row">
-          <div class="row-icon icon-violet"><svg viewBox="0 0 24 24"><path d="M7 4l-4 16M13 4l-4 16M19 4l-4 16"/></svg></div>
-          <div class="row-text">
-            <div class="label">Parallel Animation</div>
-            <div class="sub">Raises HyperOS's device animation tier (v:1,c:3,g:3) — duchamp/rodin are hardware-capable but classified below the tier that unlocks this by default. Reboot recommended.</div>
+
+      <div class="section-head">
+        <div class="section-label">MEMORY / ZRAM</div>
+        <div class="section-note">Off by default — workload-dependent, applied at early boot.</div>
+      </div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6a8 3 0 0 0 16 0V5M4 11v6a8 3 0 0 0 16 0v-6"/></svg>
           </div>
-          <div class="switch" id="swParallelAnim"></div>
+          <div class="action-body">
+            <div class="action-title">VM / ZRAM Tweaks</div>
+            <div class="action-sub">Swappiness, read-ahead, scheduler autogroup</div>
+          </div>
+          <div class="switch warn skel" id="swVmTweaks"></div>
+        </div>
+        <div class="action-row" id="swappinessRow">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Swappiness <span id="swappinessVal" style="color:var(--text-dim); font-weight:500;">—</span></div>
+            <div class="action-sub">60 = default balance, 100 = favors ZRAM heavily</div>
+          </div>
+        </div>
+        <div style="padding:0 18px 16px;">
+          <input type="range" id="swappinessSlider" min="0" max="100" step="10" style="width:100%; accent-color: var(--accent-1);">
         </div>
       </div>
-      <div class="card">
-        <div class="eyebrow">settings put system miui_home_animation_rate</div>
-        <div class="row">
-          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></div>
-          <div class="row-text">
-            <div class="label">Launcher Animation</div>
-            <div class="sub">Same idea, scoped to com.miui.home specifically — no launcher modification, just a setting it already reads. Force-stop the launcher or reboot to see it.</div>
-          </div>
-          <div class="switch" id="swLauncherAnim"></div>
-        </div>
-      </div>
-      <button class="primary" id="applyBtnTweaks">Apply now</button>
-      <div class="status" id="statusTweaks"></div>
+
+      <button class="apply-btn" id="applyBtnTweaks">Apply now</button>
+      <div class="status-line" id="statusTweaks"></div>
     </section>
 
     <!-- ============ APPS ============ -->
     <section class="page" id="page-apps" hidden>
-      <div class="section-title">Telegram scroll lag</div>
-      <div class="card">
-        <div class="row">
-          <div class="row-icon icon-blue"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></div>
-          <div class="row-text">
-            <div class="label">TG Lag Fix</div>
-            <div class="sub">Experimental. Now bundles the verified PowerKeeper full-disable (Tweaks → System), not MIUI Optimization — that was tested and didn't help. One thing this can't reach: Telegram's own animated chat background is a real, developer-acknowledged performance cost — try a static wallpaper inside Telegram too (Settings → Chat Settings).</div>
+
+      <div class="section-label">TELEGRAM</div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
           </div>
-          <div class="switch" id="swTgFix"></div>
+          <div class="action-body">
+            <div class="action-title">TG Lag Fix</div>
+            <div class="action-sub">Adds Telegram to priority apps + enables PowerKeeper full disable</div>
+          </div>
+          <div class="switch skel" id="swTgFix"></div>
         </div>
       </div>
 
-      <div class="section-title">Priority apps</div>
+      <div class="section-head">
+        <div class="section-label">PRIORITY APPS</div>
+        <div class="section-note">Exempted from Doze / App Standby / PowerKeeper background limits.</div>
+      </div>
       <div class="card">
-        <div class="row">
-          <div class="row-text">
-            <div class="label">Background-restriction exemptions</div>
-            <div class="sub">Add a package name to exempt it from Doze / App Standby / PowerKeeper limits.</div>
-          </div>
-        </div>
         <div class="chip-input-row">
-          <input class="chip-input" id="pkgInput" placeholder="com.example.app" autocapitalize="none" autocorrect="off">
+          <input class="chip-input" id="pkgInput" placeholder="com.example.app" autocapitalize="none" autocorrect="off" spellcheck="false">
           <button class="chip-add" id="pkgAdd">Add</button>
         </div>
         <div class="chip-list" id="chipList"></div>
       </div>
-      <button class="primary" id="applyBtnApps">Apply now</button>
-      <div class="status" id="statusApps"></div>
+
+      <button class="apply-btn" id="applyBtnApps">Apply now</button>
+      <div class="status-line" id="statusApps"></div>
     </section>
 
     <!-- ============ SETTINGS ============ -->
     <section class="page" id="page-settings" hidden>
-      <div class="section-title">Appearance</div>
+
+      <div class="section-label">APPEARANCE</div>
       <div class="card">
-        <div class="row">
-          <div class="row-text">
-            <div class="label">Mode</div>
-            <div class="sub">System follows your device's dark/light setting live.</div>
-          </div>
-        </div>
         <div class="segmented" id="segMode">
-          <button class="seg-btn" data-val="system">System</button>
-          <button class="seg-btn" data-val="dark">Dark</button>
           <button class="seg-btn" data-val="light">Light</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="row">
-          <div class="row-text">
-            <div class="label">Accent</div>
-            <div class="sub">Monet pulls today's Material You color from your wallpaper. Falls back to the default if it's unavailable on your ROM.</div>
-          </div>
-        </div>
-        <div class="segmented" id="segAccent">
-          <button class="seg-btn" data-val="fixed">Default</button>
-          <button class="seg-btn" data-val="monet">Monet</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="row">
-          <div class="row-text">
-            <div class="label">Wallpaper</div>
-            <div class="sub">Behind the glass surfaces.</div>
-          </div>
-        </div>
-        <div class="wallpaper-picker">
-          <div class="wallpaper-item">
-            <div class="wallpaper-swatch" data-val="none">None</div>
-          </div>
-          <div class="wallpaper-item">
-            <div class="wallpaper-swatch" data-val="signal"><div class="wallpaper wp-signal"></div></div>
-            <span class="wallpaper-swatch-label">Signal</span>
-          </div>
-          <div class="wallpaper-item">
-            <div class="wallpaper-swatch" data-val="aurora"><div class="wallpaper wp-aurora"></div></div>
-            <span class="wallpaper-swatch-label">Aurora</span>
-          </div>
-          <div class="wallpaper-item">
-            <div class="wallpaper-swatch" data-val="grid"><div class="wallpaper wp-grid"></div></div>
-            <span class="wallpaper-swatch-label">Grid</span>
-          </div>
-          <div class="wallpaper-item">
-            <div class="wallpaper-swatch" data-val="pulse"><div class="wallpaper wp-pulse"></div></div>
-            <span class="wallpaper-swatch-label">Pulse</span>
-          </div>
+          <button class="seg-btn" data-val="dark">Dark</button>
+          <button class="seg-btn" data-val="system">System</button>
         </div>
       </div>
 
-      <div class="section-title">Motion</div>
+      <div class="section-label">ACCENT COLOR</div>
       <div class="card">
-        <div class="row">
-          <div class="row-text">
-            <div class="label">Animations</div>
-            <div class="sub">Interface motion only — not the device-level Smooth Touch tweak.</div>
-          </div>
+        <div class="segmented" id="segAccent">
+          <button class="seg-btn" data-val="fixed">Signature</button>
+          <button class="seg-btn" data-val="monet">Monet</button>
         </div>
+      </div>
+
+      <div class="section-label">WALLPAPER</div>
+      <div class="card">
+        <div class="wallpaper-row">
+          <div class="wallpaper-swatch" data-val="none"></div>
+          <div class="wallpaper-swatch" data-val="signal"></div>
+          <div class="wallpaper-swatch" data-val="aurora"></div>
+          <div class="wallpaper-swatch" data-val="grid"></div>
+        </div>
+      </div>
+
+      <div class="section-label">MOTION</div>
+      <div class="card">
         <div class="segmented" id="segAnim">
           <button class="seg-btn" data-val="full">Full</button>
           <button class="seg-btn" data-val="reduced">Reduced</button>
@@ -290,59 +316,165 @@
         </div>
       </div>
 
-      <div class="section-title">Module</div>
+      <div class="section-head">
+        <div class="section-label">PAGE TRANSITION</div>
+        <div class="section-note">How pages animate in when you switch tabs or swipe.</div>
+      </div>
       <div class="card">
-        <div class="kv"><div class="k">Name</div><div class="v" id="mName">HyperTouch</div></div>
-        <div class="kv"><div class="k">Version</div><div class="v" id="mVersion">—</div></div>
-        <div class="kv"><div class="k">Author</div><div class="v" id="mAuthor">—</div></div>
-        <div class="kv"><div class="k">Device</div><div class="v" id="mDevice">—</div></div>
-        <div class="kv"><div class="k">ROM</div><div class="v" id="mRom">—</div></div>
-        <div class="kv"><div class="k">Profile</div><div class="v" id="mProfile">—</div></div>
+        <div class="segmented" id="segTransition">
+          <button class="seg-btn" data-val="miuix">miuix</button>
+          <button class="seg-btn" data-val="aosp">AOSP</button>
+          <button class="seg-btn" data-val="scale">Scale</button>
+          <button class="seg-btn" data-val="none">None</button>
+        </div>
       </div>
 
-      <div class="section-title">Actions</div>
-      <div class="card" style="padding:14px 16px;">
-        <button class="secondary" id="revertBtn">Revert (keep saved settings)</button>
-        <button class="secondary danger-text" id="resetBtn">Reset to defaults</button>
+      <div class="section-head">
+        <div class="section-label">EXIT DIRECTION</div>
+        <div class="section-note">Only affects miuix/AOSP, which slide horizontally.</div>
       </div>
-      <div class="status" id="statusSettings"></div>
+      <div class="card">
+        <div class="segmented" id="segExitDir">
+          <button class="seg-btn" data-val="gesture">Follow gesture</button>
+          <button class="seg-btn" data-val="right">Always right</button>
+          <button class="seg-btn" data-val="left">Always left</button>
+        </div>
+      </div>
 
-      <div class="section-title">Links</div>
-      <div class="card" style="padding:14px 16px;">
-        <button class="secondary" id="githubBtn">Open GitHub repo</button>
-        <button class="secondary" id="probeInfoBtn">How to unlock touch tuning</button>
+      <div class="section-label">RESET</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="secondary-btn" id="revertBtn">Revert (keep saved settings)</button>
+        <button class="secondary-btn danger" id="resetBtn">Reset to defaults</button>
       </div>
+      <div class="status-line" id="statusSettings"></div>
     </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="page" id="page-about" hidden>
+
+      <div class="hero" style="cursor:default;">
+        <div class="hero-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+        </div>
+        <div class="hero-body">
+          <div class="hero-label">MODULE</div>
+          <div class="hero-title" id="mName">HyperTouch</div>
+          <div class="hero-sub"><span id="mVersion">—</span> · by <span id="mAuthor">—</span></div>
+        </div>
+      </div>
+
+      <div class="section-label">DEVICE</div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Device</div>
+            <div class="action-sub" id="mDevice">—</div>
+          </div>
+        </div>
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 9 9 0 0 0 0-18"/><path d="M3 12h18"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">ROM</div>
+            <div class="action-sub" id="mRom">—</div>
+          </div>
+        </div>
+        <div class="action-row">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Tuning profile</div>
+            <div class="action-sub" id="mProfile">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label">LINKS</div>
+      <div class="action-card">
+        <div class="action-row clickable" id="githubBtn">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">GitHub repo</div>
+            <div class="action-sub">Source, issues, releases</div>
+          </div>
+          <svg class="action-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+        <div class="action-row clickable" id="probeInfoBtn">
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Report-rate node not detected?</div>
+            <div class="action-sub">How to help get your ROM added</div>
+          </div>
+          <svg class="action-chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+      </div>
+
+    </section>
+
   </main>
 
-  <nav class="navbar">
-    <div class="nav-dash" id="navDash"><div class="nav-dash-dot"></div></div>
-    <div class="navrow">
-    <button class="navitem active" data-page="home" aria-label="Home">
-      <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
-    </button>
-    <button class="navitem" data-page="tweaks" aria-label="Tweaks">
-      <svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M20 18h0"/><circle cx="12" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-    </button>
-    <button class="navitem" data-page="apps" aria-label="Apps">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-    </button>
-    <button class="navitem" data-page="settings" aria-label="Settings">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.7 1.7 0 0015 19.4a1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09A1.7 1.7 0 009 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"/></svg>
-    </button>
+  <div class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab active navitem" data-page="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="tab navitem" data-page="tweaks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="21" x2="5" y2="14"/><line x1="5" y1="10" x2="5" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="19" y1="21" x2="19" y2="16"/><line x1="19" y1="12" x2="19" y2="3"/><line x1="2" y1="14" x2="8" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="16" y1="16" x2="22" y2="16"/></svg>
+        <span>Tweaks</span>
+      </button>
+      <button class="tab navitem" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+      <button class="tab navitem" data-page="about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>About</span>
+      </button>
     </div>
-  </nav>
+  </div>
 
-  <div class="toast-stack" id="toastStack"></div>
+</div>
 
-  <div class="overlay" id="overlay" hidden>
-    <div class="dialog">
-      <div class="dialog-title" id="dlgTitle"></div>
-      <div class="dialog-body" id="dlgBody"></div>
-      <div class="dialog-actions">
-        <button id="dlgCancel">Cancel</button>
-        <button class="confirm" id="dlgConfirm">Confirm</button>
-      </div>
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="shell-scrim" id="shellScrim" hidden></div>
+<aside class="shell-panel" id="shellPanel" hidden>
+  <div class="shell-head">
+    <div class="shell-head-title">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7.5 9.5 3 2.5-3 2.5"/><path d="M13 15h4"/></svg>
+      Activity Log
+    </div>
+    <div class="shell-head-actions">
+      <button class="shell-icon-btn" id="shellClear" aria-label="Clear log">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      </button>
+      <button class="shell-icon-btn" id="shellClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="shell-body" id="shellBody">
+    <div class="shell-empty" id="shellEmpty">No activity yet this session.</div>
+  </div>
+</aside>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-title" id="dlgTitle"></div>
+    <div class="dialog-body" id="dlgBody"></div>
+    <div class="dialog-actions">
+      <button id="dlgCancel">Cancel</button>
+      <button class="confirm" id="dlgConfirm">Confirm</button>
     </div>
   </div>
 </div>

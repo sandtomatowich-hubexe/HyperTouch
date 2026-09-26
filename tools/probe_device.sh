@@ -3,7 +3,7 @@
 # NOT run automatically by the module. Run once as root when trying
 # HyperTouch on a device other than duchamp, to gather what's needed
 # for a new case-statement entry (CPU cluster layout, GPU governor
-# node, thermal node). Pair with probe_touch.sh for the touch side.
+# node, thermal node).
 #
 #   adb shell su -c "sh /sdcard/probe_device.sh" > device_profile.txt
 
@@ -42,4 +42,4 @@ for b in /sys/class/power_supply/*/temp; do
 done
 
 echo
-echo "== done — also run probe_touch.sh for the touch driver side =="
+echo "== done =="

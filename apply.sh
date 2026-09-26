@@ -192,6 +192,23 @@ say "rom: $ROM"
 
 apply_hardware_tweaks() {
     echo "→ hardware tweaks"
+
+    # Two different Goodix driver builds expose the touch report-rate
+    # toggle under different node names — switch_report_rate is what
+    # we've confirmed on HyperOS/duchamp; goodix_ts_report_rate is
+    # reported on some AOSP-based builds. Detect whichever actually
+    # exists on this device rather than hardcoding one — an absent
+    # node just means write() skips it and logs "not writable" instead
+    # of silently doing nothing on the wrong path.
+    goodix_dir=$(dirname "$GOODIX_PATH")
+    if [ -w "$goodix_dir/goodix_ts_report_rate" ]; then
+        GOODIX_PATH="$goodix_dir/goodix_ts_report_rate"
+    elif [ -w "$goodix_dir/switch_report_rate" ]; then
+        GOODIX_PATH="$goodix_dir/switch_report_rate"
+    fi
+    # else: leave GOODIX_PATH as the profile default; write() will
+    # report it as not-writable rather than fail silently.
+
     save_orig "$GOODIX_PATH"
     write "$GOODIX_PATH" "$REPORT_RATE_MODE"
 

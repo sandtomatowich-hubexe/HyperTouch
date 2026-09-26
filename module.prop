@@ -1,7 +1,7 @@
 id=hypertouch
 name=HyperTouch
-version=v2.4
-versionCode=240
+version=v3.0.0
+versionCode=300
 author=Sep
-description=Touch + performance tuning for Poco X6 Pro 5G / Redmi K70E (duchamp), experimental Rodin support. Real duchamp tuning, rebuilt TG Lag Fix, live device info, dark/light/Monet WebUI.
+description=Touch + performance tuning for Poco X6 Pro / Poco X7 Pro (duchamp/rodin). Rebuilt card-dashboard WebUI, activity log, swipe navigation, live-glass nav, auto-detected touch report-rate node.
 updateJson=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/update.json
