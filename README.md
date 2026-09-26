@@ -1,6 +1,11 @@
-# HyperTouch
+<div align="center">
+  <h1>HyperTouch</h1>
+  <img src="assets/hypertouch-logo.png" alt="HyperTouch" width="300">
+</div>
 
-Touch response and system responsiveness tuning for **Poco X6 Pro / Redmi K70E (duchamp)**, with experimental support for **Poco X7 Pro (rodin)** — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
+# What is HyperTouch?
+
+`HyperTouch` is a Touch response and system responsiveness tuning module made for **Poco X6 Pro / Redmi K70E (duchamp)**, also with a experimental support for **Poco X7 Pro (rodin)** — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
 
 Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **APatch**. The WebUI specifically needs a manager with a KSU-bridge WebView (KernelSU Next, MMRL, APatch's own, or a standalone viewer like KsuWebUIStandalone) — plain Magisk has no in-app WebView, so `action.sh` from a root shell is the way to control the module there instead.
 
