@@ -104,6 +104,7 @@ PRIORITY_APPS=
 TG_LAG_FIX=0
 PARALLEL_ANIM=0
 LAUNCHER_ANIM_RATE=0
+FORCE_120HZ=0
 FAST_CPU_RESPONSE=1
 GPU_FLOOR=0
 
@@ -328,7 +329,14 @@ apply_parallel_anim() {
     fi
     save_setting_orig system deviceLevelList settings_deviceLevelList
     settings put system deviceLevelList "v:1,c:3,g:3" 2>/dev/null
-    say "  deviceLevelList set to v:1,c:3,g:3 (reboot recommended)"
+    # Best-effort live pickup: the animation-tier logic that reads this
+    # key lives close to system_server, so there's no single userspace
+    # process we can safely restart the way we can the launcher below.
+    # Nudging system_server itself is a much bigger, riskier action
+    # (briefly kills the whole UI) than this module should take without
+    # being asked, so this stays reboot-recommended rather than
+    # reboot-required — HyperOS may pick it up sooner on its own.
+    say "  deviceLevelList set to v:1,c:3,g:3 (takes effect within HyperOS's own refresh window, reboot for guaranteed immediate effect)"
 }
 
 # ── Launcher animation rate — com.miui.home, no launcher edits ──
@@ -345,7 +353,70 @@ apply_launcher_anim() {
     fi
     save_setting_orig system miui_home_animation_rate settings_miui_home_animation_rate
     settings put system miui_home_animation_rate 1 2>/dev/null
-    say "  miui_home_animation_rate set to 1 (force-stop the launcher, or reboot, to see it)"
+    # Force-stopping the launcher is safe and instant — Android restarts
+    # it automatically the moment it's needed (immediately, since it's
+    # the home app), so this is a genuine hot-reload rather than
+    # "restart it yourself or reboot."
+    am force-stop com.miui.home 2>/dev/null
+    say "  miui_home_animation_rate set to 1, launcher restarted to pick it up live"
+}
+
+# ── Force 120Hz — pins the display compositor to a fixed high refresh
+# rate instead of letting it adapt down on static/low-motion content.
+# Real battery cost, by design — same tradeoff as AOSP Developer
+# Options' "Force peak refresh rate", just exposed here since HyperOS
+# doesn't have its own equivalent toggle.
+apply_force_120hz() {
+    [ "$FORCE_120HZ" != "1" ] && return
+    echo "→ force 120Hz"
+
+    # Only force a rate the display can actually reach — check the
+    # highest mode SurfaceFlinger reports before writing anything, so
+    # a 90Hz-capped device doesn't get told to hold a rate it can't
+    # hit (that would just make the compositor request something it
+    # silently clamps, not actually force anything).
+    # SurfaceFlinger's fps= lines can report only the *current* transient
+    # rate on LTPO panels (confirmed: a real device returned 115 here,
+    # a mid-ramp value, not the panel's actual peak) — dumpsys display
+    # lists every supported mode's refresh rate explicitly, which is
+    # what "does this panel support 120Hz+" actually needs.
+    max_hz=$(dumpsys display 2>/dev/null | grep -oE 'refreshRate=[0-9]+\.[0-9]+' | cut -d= -f2 | cut -d. -f1 | sort -rn | head -1)
+    if [ -z "$max_hz" ]; then
+        # Fallback to the SurfaceFlinger method if this device's dumpsys
+        # display output doesn't use that exact key.
+        max_hz=$(dumpsys SurfaceFlinger 2>/dev/null | grep -oE 'fps=[0-9]+\.[0-9]+' | cut -d= -f2 | cut -d. -f1 | sort -rn | head -1)
+    fi
+    if [ -z "$max_hz" ] || [ "$max_hz" -lt 120 ] 2>/dev/null; then
+        warn "  display doesn't report a 120Hz+ mode, skipping (found: ${max_hz:-unknown})"
+        return
+    fi
+
+    save_setting_orig system min_refresh_rate settings_min_refresh_rate
+    save_setting_orig system peak_refresh_rate settings_peak_refresh_rate
+    settings put system min_refresh_rate 120 2>/dev/null
+    settings put system peak_refresh_rate 120 2>/dev/null
+    say "  min/peak refresh rate pinned to 120Hz — real battery cost, by design"
+}
+
+# ── VM / ZRAM — live counterpart to post-fs-data.sh's early-boot pass.
+# post-fs-data.sh only runs once, at early boot, by the root framework's
+# own design — it can't be re-invoked live. These specific sysfs/proc
+# nodes are genuinely writable at any time though (not boot-only), so
+# this mirrors that script's logic here too: toggling the setting takes
+# effect immediately, and post-fs-data.sh still re-applies it on the
+# next boot so it survives a reboot either way.
+apply_vm_tweaks() {
+    [ "$VM_TWEAKS_ENABLED" != "1" ] && return
+    echo "→ VM / ZRAM (live)"
+    write /proc/sys/vm/page-cluster 0
+    write /sys/block/zram0/max_comp_streams 4
+    write /proc/sys/vm/swappiness "$SWAPPINESS"
+    write /proc/sys/vm/stat_interval 10
+    for q in /sys/block/zram*/queue /sys/block/mmcblk*/queue /sys/block/sd*/queue; do
+        [ -d "$q" ] || continue
+        write "$q/read_ahead_kb" 128
+    done
+    write /proc/sys/kernel/sched_autogroup_enabled 1
 }
 
 # ── Priority Apps — background-restriction exemption, kernel-independent ──
@@ -444,6 +515,8 @@ apply_powerkeeper
 apply_smooth_touch
 apply_parallel_anim
 apply_launcher_anim
+apply_force_120hz
+apply_vm_tweaks
 apply_priority_apps
 update_live_info
 

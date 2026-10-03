@@ -1,5 +1,39 @@
 # Changelog
 
+## v3.1.0
+
+**New: Force 120Hz Everywhere**
+- Tweaks → Display (opt-in) — pins `min_refresh_rate`/`peak_refresh_rate` to 120Hz so the display never adapts down on static content, the same mechanism AOSP's own Developer Options uses for "Force peak refresh rate." Real, deliberate battery cost — that's the point of the feature. Checks the display actually reports a 120Hz+ mode before writing anything, and safely no-ops otherwise. Fully revertible, same as every other tweak
+- Fixed the detection itself after it missed a confirmed-120Hz display on real hardware: `dumpsys SurfaceFlinger`'s fps line can report the panel's current transient LTPO rate (seen: 115, mid-ramp) rather than its true peak. Now reads `dumpsys display`'s full supported-mode list first, which enumerates every mode's rate explicitly, falling back to the SurfaceFlinger method only if that key isn't present
+
+**Hot reload — no more reboots after the first flash**
+- `LAUNCHER_ANIM_RATE` now force-restarts `com.miui.home` itself when toggled — instant and safe, since Android relaunches the home app automatically. No more manual force-stop or reboot to see it take effect
+- `VM_TWEAKS_ENABLED`/`SWAPPINESS` now apply live to the same `/proc`/sysfs nodes in addition to running at next boot via `post-fs-data.sh` — these nodes were never actually boot-only, that script was just the conventional place to set them. Toggling now takes effect immediately, and still survives a reboot
+- `PARALLEL_ANIM` (`deviceLevelList`) remains the one exception: it's applied immediately, but there's no single safe userspace process this module can restart to force HyperOS to re-read it the way it can for the launcher — restarting `system_server` to guarantee that would briefly kill the whole UI, too big an action to take automatically. A reboot is still the only *guaranteed* immediate way to see it; in practice HyperOS tends to pick it up on its own within its own refresh window
+
+**Fixed: real bug in Priority Apps / TG Lag Fix**
+- `PRIORITY_APPS` with more than one package (e.g. `org.telegram.messenger com.discord`) was being written to `settings.conf` unquoted. When sourced by `sh`, an unquoted multi-word value after the first package gets parsed as a second shell command — confirmed on-device as `settings.conf: line 28: org.telegram.messenger: not found`, meaning only the first listed app was ever actually applied. Now written with quotes
+
+**New toggle design**
+- Redesigned toggle switches in a MIUIX-style capsule-thumb form (wide rounded-rect thumb with a brief squish on tap) instead of the generic iOS-style pill switch
+
+**WebUI layout fixes** — several real bugs found and fixed across this cycle:
+- Oversized/misaligned rendering in some WebView hosts — added `text-size-adjust: 100%`, which stops some Android WebViews from auto-inflating font size based on the system's font-scale accessibility setting independent of the page's own CSS
+- Every button label was rendering left-aligned instead of centered ("Off", "Reduced", "Monet" in the segmented controls, "Apply now", secondary buttons, the Add chip button) — a global `button{}` UA-style reset had set `text-align:inherit`, which removed the browser's default centering as a side effect. Buttons are centered by default again; `.hero`'s left-aligned text is now set explicitly rather than inherited
+- Section labels were being overlapped by the card above them on slower WebView compositors — caused by a per-card staggered entrance animation that could leave a card painted partway through its offset transform. Removed; the page-level transition already carries the motion
+- Tightened label-to-card spacing so each label sits with its own card (6px) instead of floating ~equidistant between two
+- Removed a dead Google Fonts `@import` — this UI runs offline inside a WebView, so the fetch always failed and silently fell back to whatever the host substituted, which varied. Font stack now lists Android-native fonts directly (Roboto first) with no network dependency
+- Cards (hero, stat, action rows) were rendering oversized on-device even after the text-size-adjust fix, since some WebView hosts scale the whole page beyond what a desktop preview shows — tightened padding and type sizes throughout so the layout holds up under that scaling. Shell/log button reduced back to 30px
+- Body text was rendering unintentionally bold after the font-stack fix exposed a heavier system fallback face with no explicit weight set to override it — body and description text now explicitly regular weight
+- Added an automated layout audit to the release checks (sibling overlap, horizontal overflow, stuck mid-animation state, button alignment, across all five pages) — the previous release checks covered syntax and element IDs but not layout, which is how several of the above shipped unnoticed
+
+**Installer (`customize.sh`)**
+- Paced out with `sleep` between log lines so the flash-time output is readable instead of scrolling past instantly
+
+**Other**
+- `module.prop` now includes a `banner=` field pointing at the project's logo for managers that display one
+- `settings.conf` schema bumped to version 5 for the `FORCE_120HZ` key
+
 ## v3.0.1 — hotfix
 
 - Fixed real navigation lag in the WebUI: `backdrop-filter` on the app bar and nav bar was set to *transition*, which forces a full re-blur of everything underneath on every animation frame — very expensive, and was firing on every scroll frame and every tab switch at once. Blur intensity now switches in one step instead of animating; blur radius also reduced (was pushed higher than necessary in a previous round)

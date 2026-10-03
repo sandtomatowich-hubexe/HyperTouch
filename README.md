@@ -22,6 +22,7 @@ Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **
 | Priority Apps (background exemption) | Userspace | ✅ Working | Kernel-independent, works on any device/ROM |
 | Parallel Animation | System | ✅ Working | Real `deviceLevelList` mechanism — see [below](#parallel-animation) |
 | Launcher Animation | System | ✅ Working | Same idea, scoped to `com.miui.home` — no launcher modification |
+| Force 120Hz Everywhere | System | ✅ Working, opt-in | Pins min/peak refresh rate — real, deliberate battery cost |
 | VM/ZRAM tuning | Kernel (early boot) | ✅ Working, opt-in | Off by default — swappiness, read-ahead, scheduler autogroup |
 | TG Lag Fix | Userspace + System | 🧪 Experimental, rebuilt | Layers Priority Apps + PowerKeeper full-disable — see [below](#tg-lag-fix) |
 | WebUI | — | ✅ Working | Card-dashboard design, swipe navigation, activity log — see [below](#webui) |
@@ -31,7 +32,7 @@ Smooth Touch (animation-scale tuning) was removed as of v3.0.0 — it's redundan
 ## Installation
 
 1. Flash `HyperTouch.zip` in your manager. The install log reports your device profile, root manager, and which touch report-rate node was found on your build.
-2. Reboot, **or** open the module's Action/WebUI afterward to apply without rebooting.
+2. Reboot once after the first flash. After that, every setting applies live through the Action button or WebUI — no more reboots needed (one exception: see [below](#settingsconf-reference)).
 3. Updating later preserves both your `settings.conf` and your WebUI appearance preferences automatically — neither resets to defaults.
 
 ## WebUI
@@ -69,8 +70,9 @@ Edit by hand or through the WebUI — both write the same file, so nothing gets 
 | `FAST_CPU_RESPONSE` | `0` / `1` | `1` | No |
 | `GPU_FLOOR` | `0` / `1` | `0` | No |
 | `SMOOTH_TOUCH_MODE` | `0` stock / `1` fast / `2` instant | `1` | No |
-| `PARALLEL_ANIM` | `0` / `1` | `0` | Recommended |
-| `LAUNCHER_ANIM_RATE` | `0` / `1` | `0` | Force-stop launcher, or reboot |
+| `PARALLEL_ANIM` | `0` / `1` | `0` | Applied live; reboot guarantees it |
+| `LAUNCHER_ANIM_RATE` | `0` / `1` | `0` | No — launcher auto-restarts |
+| `FORCE_120HZ` | `0` / `1` | `0` | No |
 | `PRIORITY_APPS` | space-separated package names | blank | No |
 | `TG_LAG_FIX` | `0` / `1` | `0` | No |
 | `VM_TWEAKS_ENABLED` | `0` / `1` | `0` | No (early-boot, next apply/boot) |
@@ -79,7 +81,10 @@ Edit by hand or through the WebUI — both write the same file, so nothing gets 
 
 `SMOOTH_TOUCH_MODE` no longer has a WebUI control as of v3.0.0 (see [Features](#features)) but remains functional if set by hand — `apply.sh` still reads and applies it.
 
-Everything applies live through `apply.sh` except the rows marked above — `PARALLEL_ANIM`/`LAUNCHER_ANIM_RATE` write `Settings.System` keys HyperOS mostly picks up on the next launcher restart or reboot, not instantly; `VM_TWEAKS_ENABLED`/`SWAPPINESS` run in `post-fs-data.sh` at early boot, so a live `action.sh`/WebUI apply updates `settings.conf` immediately but the VM tuning itself takes effect next boot.
+Everything applies live through `apply.sh`/the WebUI — no reboot needed after the first flash, with two exceptions:
+
+- `PARALLEL_ANIM` (`deviceLevelList`) — HyperOS's animation-tier logic sits close to `system_server`, with no single safe userspace process this module can restart to force an immediate re-read the way it can for the launcher. It's applied immediately and HyperOS picks it up within its own refresh window in practice, but a reboot is still the only *guaranteed* immediate way to see it.
+- Nothing else requires a reboot as of this version — `LAUNCHER_ANIM_RATE` now force-restarts the launcher itself (instant, safe — Android relaunches it automatically since it's the home app), and `VM_TWEAKS_ENABLED`/`SWAPPINESS` now apply live to the same `/proc`/sysfs nodes in addition to running at next boot via `post-fs-data.sh`, so toggling them takes effect immediately rather than only after a restart.
 
 ## Management CLI
 
@@ -129,9 +134,13 @@ One thing no root tweak can reach: Telegram's own animated chat background is a 
 ## Parallel Animation
 
 <a id="parallel-animation"></a>
-HyperOS gates certain animations (parallel-rendered transitions, some launcher effects) behind a device's assigned "animation tier," read from the `deviceLevelList` Settings key. duchamp and rodin are hardware-capable but classified below the tier that unlocks it by default. `PARALLEL_ANIM` sets it directly: `settings put system deviceLevelList "v:1,c:3,g:3"`. Reboot recommended for it to fully take.
+HyperOS gates certain animations (parallel-rendered transitions, some launcher effects) behind a device's assigned "animation tier," read from the `deviceLevelList` Settings key. duchamp and rodin are hardware-capable but classified below the tier that unlocks it by default. `PARALLEL_ANIM` sets it directly: `settings put system deviceLevelList "v:1,c:3,g:3"`. Applied immediately; a reboot is the only way to *guarantee* HyperOS has re-read it, since there's no single safe process this module can restart to force that the way it can for the launcher below.
 
-`LAUNCHER_ANIM_RATE` is the same idea scoped specifically to the stock launcher (`com.miui.home`) via `miui_home_animation_rate` — a Settings key the launcher itself reads at runtime, so this works without decompiling or patching the launcher APK at all.
+`LAUNCHER_ANIM_RATE` is the same idea scoped specifically to the stock launcher (`com.miui.home`) via `miui_home_animation_rate` — a Settings key the launcher itself reads at runtime. Toggling it force-restarts `com.miui.home`, which Android relaunches automatically (it's the home app), so this one is a genuine instant hot-reload — no manual force-stop or reboot needed.
+
+## Force 120Hz Everywhere
+
+Pins `min_refresh_rate` and `peak_refresh_rate` to 120Hz, the same mechanism AOSP's own Developer Options uses for "Force peak refresh rate" — HyperOS doesn't expose an equivalent toggle on its own. This stops the display from adaptively dropping to a lower rate on static or low-motion content, at a real, deliberate battery cost — that's the entire point of the feature, not a side effect to be optimized away. `apply.sh` checks that the display actually reports a 120Hz-or-higher mode before writing anything, so it safely no-ops rather than force a rate the panel can't reach.
 
 ## Contributing
 

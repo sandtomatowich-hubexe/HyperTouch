@@ -5,7 +5,7 @@
 */
 
 :root{
-  --font-sans: 'Inter', -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: Roboto, 'Noto Sans', system-ui, sans-serif;
   --font-mono: ui-monospace, "Roboto Mono", "SFMono-Regular", Menlo, Consolas, monospace;
 
   --good:#22B07D;

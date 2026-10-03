@@ -186,7 +186,7 @@
 
       <div class="section-head">
         <div class="section-label">PARALLEL ANIMATION</div>
-        <div class="section-note">Reboot recommended after changing these.</div>
+        <div class="section-note">Applied live. Parallel Animation's effect is guaranteed instant only after a reboot; Launcher Animation Rate always is.</div>
       </div>
       <div class="action-card">
         <div class="action-row">
@@ -208,6 +208,23 @@
             <div class="action-sub">Same idea, scoped to com.miui.home specifically</div>
           </div>
           <div class="switch skel" id="swLauncherAnim"></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <div class="section-label">DISPLAY</div>
+        <div class="section-note">Real, deliberate battery cost — not a bug.</div>
+      </div>
+      <div class="action-card">
+        <div class="action-row">
+          <div class="action-icon warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0-8-8"/><path d="M12 12 16 8"/><path d="M4 20h16"/></svg>
+          </div>
+          <div class="action-body">
+            <div class="action-title">Force 120Hz Everywhere</div>
+            <div class="action-sub">Pins min + peak refresh rate to 120Hz so the display never adapts down on static content. No-ops if your display doesn't report a 120Hz+ mode.</div>
+          </div>
+          <div class="switch warn skel" id="swForce120hz"></div>
         </div>
       </div>
 

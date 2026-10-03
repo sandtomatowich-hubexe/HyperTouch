@@ -12,7 +12,8 @@
 #   action.sh status              show current settings + device profile
 #   action.sh enable <feature>    boost | powerkeeper | battery-spoof |
 #                                 fast-cpu | gpu-floor | powerkeeper-full |
-#                                 parallel-anim | launcher-anim | tg-fix
+#                                 parallel-anim | launcher-anim | force-120hz |
+#                                 tg-fix
 #   action.sh disable <feature>   (same feature names)
 #   action.sh reset               restore settings.conf to shipped defaults
 #   action.sh revert              temporarily undo tweaks (settings.conf kept)
@@ -46,6 +47,7 @@ feature_key() {
         gpu-floor)         echo GPU_FLOOR ;;
         parallel-anim)     echo PARALLEL_ANIM ;;
         launcher-anim)     echo LAUNCHER_ANIM_RATE ;;
+        force-120hz)       echo FORCE_120HZ ;;
         tg-fix)            echo TG_LAG_FIX ;;
         *)                 echo "" ;;
     esac
@@ -74,6 +76,7 @@ cmd_status() {
     echo "  smooth touch   : $(conf_get SMOOTH_TOUCH_MODE)  (0=stock 1=fast 2=instant)"
     echo "  parallel anim  : $(conf_get PARALLEL_ANIM)  (deviceLevelList)"
     echo "  launcher anim  : $(conf_get LAUNCHER_ANIM_RATE)"
+    echo "  force 120Hz    : $(conf_get FORCE_120HZ)"
     echo "  priority apps  : $(conf_get PRIORITY_APPS)"
     echo "  tg lag fix     : $(conf_get TG_LAG_FIX)  (experimental)"
 }
@@ -81,7 +84,7 @@ cmd_status() {
 cmd_enable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, force-120hz, tg-fix"
         exit 1
     fi
     # Config write and the apply run it triggers share one lock hold,
@@ -98,7 +101,7 @@ cmd_enable() {
 cmd_disable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, force-120hz, tg-fix"
         exit 1
     fi
     ht_lock_acquire
@@ -152,6 +155,14 @@ cmd_revert() {
     if [ "$(conf_get LAUNCHER_ANIM_RATE)" = "1" ] && [ -f "$STATE_DIR/settings_miui_home_animation_rate" ]; then
         settings put system miui_home_animation_rate "$(cat "$STATE_DIR/settings_miui_home_animation_rate")" 2>/dev/null
     fi
+    if [ "$(conf_get FORCE_120HZ)" = "1" ]; then
+        if [ -f "$STATE_DIR/settings_min_refresh_rate" ]; then
+            settings put system min_refresh_rate "$(cat "$STATE_DIR/settings_min_refresh_rate")" 2>/dev/null
+        fi
+        if [ -f "$STATE_DIR/settings_peak_refresh_rate" ]; then
+            settings put system peak_refresh_rate "$(cat "$STATE_DIR/settings_peak_refresh_rate")" 2>/dev/null
+        fi
+    fi
 
     # Kernel sysfs nodes: restore each from its saved pre-apply value
     # if we have one, rather than guessing a stock number (governor
@@ -193,7 +204,8 @@ HyperTouch management CLI
   action.sh status              show current settings + device profile
   action.sh enable <feature>    boost | powerkeeper | battery-spoof |
                                 fast-cpu | gpu-floor | powerkeeper-full |
-                                parallel-anim | launcher-anim | tg-fix
+                                parallel-anim | launcher-anim | force-120hz |
+                                tg-fix
   action.sh disable <feature>   (same feature names)
   action.sh reset               restore settings.conf to shipped defaults
   action.sh revert              temporarily undo tweaks (settings kept)

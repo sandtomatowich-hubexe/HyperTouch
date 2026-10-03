@@ -48,6 +48,12 @@ PARALLEL_ANIM=0
 # a Settings key the launcher itself reads, no launcher modification.
 LAUNCHER_ANIM_RATE=0
 
+# Pins the display to a fixed 120Hz (min + peak refresh rate) instead
+# of letting it adapt down on static content. Real, deliberate
+# battery cost — same idea as AOSP Developer Options' "Force peak
+# refresh rate", which HyperOS does not expose on its own.
+FORCE_120HZ=0
+
 # ── Priority Apps (userspace, kernel-independent) ───────────
 # Space-separated package names exempted from Doze / App Standby /
 # PowerKeeper background limits.
@@ -70,4 +76,4 @@ VM_TWEAKS_ENABLED=0
 SWAPPINESS=60
 
 # ── Internal — do not edit ───────────────────────────────────
-CONF_VERSION=4
+CONF_VERSION=5

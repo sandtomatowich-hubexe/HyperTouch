@@ -1,8 +1,8 @@
 id=hypertouch
 name=HyperTouch
-version=v3.0.1
-versionCode=301
+version=v3.1.0
+versionCode=310
 author=Sep
-description=Touch + performance tuning for Poco X6 Pro / Poco X7 Pro (duchamp/rodin). Hotfix: nav lag, dark-mode text bug, ROM version, real touch-rate readback.
+description=Touch + performance tuning for Poco X6 Pro / Poco X7 Pro (duchamp/rodin). Hotfix: WebUI layout, button alignment, overlap fixes.
 updateJson=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/update.json
 banner=https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/assets/hypertouch-logo.png

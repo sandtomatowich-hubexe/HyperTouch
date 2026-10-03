@@ -140,10 +140,10 @@
   var state = {
     REPORT_RATE_MODE:"1", DISABLE_POWERKEEPER:"1", SPOOF_BATTERY_TEMP:"0",
     FAST_CPU_RESPONSE:"1", GPU_FLOOR:"0", POWERKEEPER_FULL_DISABLE:"0",
-    SMOOTH_TOUCH_MODE:"1", PARALLEL_ANIM:"0", LAUNCHER_ANIM_RATE:"0",
+    SMOOTH_TOUCH_MODE:"1", PARALLEL_ANIM:"0", LAUNCHER_ANIM_RATE:"0", FORCE_120HZ:"0",
     PRIORITY_APPS:"", TG_LAG_FIX:"0",
     VM_TWEAKS_ENABLED:"0", SWAPPINESS:"60",
-    CONF_VERSION:"4"
+    CONF_VERSION:"5"
   };
 
   // ============================================================
@@ -293,8 +293,11 @@
       "PARALLEL_ANIM=" + state.PARALLEL_ANIM,
       "LAUNCHER_ANIM_RATE=" + state.LAUNCHER_ANIM_RATE,
       "",
+      "# ── Display ───────────────────────────────────────────────────",
+      "FORCE_120HZ=" + state.FORCE_120HZ,
+      "",
       "# ── Priority Apps (userspace, kernel-independent) ───────────",
-      "PRIORITY_APPS=" + state.PRIORITY_APPS,
+      "PRIORITY_APPS=\"" + state.PRIORITY_APPS + "\"",
       "TG_LAG_FIX=" + state.TG_LAG_FIX,
       "",
       "# ── VM / ZRAM (post-fs-data, early boot) ─────────────────────",
@@ -403,6 +406,7 @@
     els.swPowerkeeperFull.classList.toggle("on", state.POWERKEEPER_FULL_DISABLE === "1");
     els.swParallelAnim.classList.toggle("on", state.PARALLEL_ANIM === "1");
     els.swLauncherAnim.classList.toggle("on", state.LAUNCHER_ANIM_RATE === "1");
+    els.swForce120hz.classList.toggle("on", state.FORCE_120HZ === "1");
     els.swTgFix.classList.toggle("on", state.TG_LAG_FIX === "1");
     els.swVmTweaks.classList.toggle("on", state.VM_TWEAKS_ENABLED === "1");
 
@@ -705,6 +709,7 @@
     els.swGpuFloor = document.getElementById("swGpuFloor");
     els.swParallelAnim = document.getElementById("swParallelAnim");
     els.swLauncherAnim = document.getElementById("swLauncherAnim");
+    els.swForce120hz = document.getElementById("swForce120hz");
     els.swTgFix = document.getElementById("swTgFix");
     els.swVmTweaks = document.getElementById("swVmTweaks");
     els.swappinessSlider = document.getElementById("swappinessSlider");
@@ -737,6 +742,16 @@
       render(); applyNow(false);
     }
 
+    // MIUIX-style squish: briefly widen the thumb toward its
+    // destination on every switch tap, one delegated listener instead
+    // of touching each of the ~11 individual toggle handlers above.
+    document.addEventListener("click", function(e){
+      var sw = e.target.closest(".switch");
+      if (!sw) return;
+      sw.classList.add("pressing");
+      setTimeout(function(){ sw.classList.remove("pressing"); }, 160);
+    });
+
     els.heroReportRate.addEventListener("click", function(){ toggleState("REPORT_RATE_MODE", "Boosted report rate"); });
     els.reportRateSwitches.forEach(function(el){
       el.addEventListener("click", function(){ toggleState("REPORT_RATE_MODE", "Boosted report rate"); });
@@ -750,6 +765,7 @@
     els.swPowerkeeperFull.addEventListener("click", function(){ toggleState("POWERKEEPER_FULL_DISABLE", "PowerKeeper full disable"); });
     els.swParallelAnim.addEventListener("click", function(){ toggleState("PARALLEL_ANIM", "Parallel animation"); });
     els.swLauncherAnim.addEventListener("click", function(){ toggleState("LAUNCHER_ANIM_RATE", "Launcher animation rate"); });
+    els.swForce120hz.addEventListener("click", function(){ toggleState("FORCE_120HZ", "Force 120Hz"); });
     els.swTgFix.addEventListener("click", function(){ toggleState("TG_LAG_FIX", "TG lag fix"); });
     els.swVmTweaks.addEventListener("click", function(){ toggleState("VM_TWEAKS_ENABLED", "VM/ZRAM tweaks"); });
     els.swappinessSlider.addEventListener("change", function(){
