@@ -136,6 +136,15 @@ LIVE_DIR="/data/adb/modules/hypertouch"
 if [ -f "$LIVE_DIR/settings.conf" ] && [ "$LIVE_DIR/settings.conf" != "$MODPATH/settings.conf" ]; then
   ui_print " Existing install found — keeping your saved settings."; sleep 0.4
   cp "$LIVE_DIR/settings.conf" "$MODPATH/settings.conf"
+  # .state holds the ORIGINAL values captured before any tweak was applied.
+  # If it were dropped on update, the new version would capture the already-
+  # tweaked values as "original" and revert/uninstall would restore the
+  # tweaks instead of the real stock values.
+  if [ -d "$LIVE_DIR/.state" ]; then
+    mkdir -p "$MODPATH/.state"
+    cp -rp "$LIVE_DIR/.state/." "$MODPATH/.state/" 2>/dev/null
+    ui_print " Carried over your saved original values (.state)."; sleep 0.4
+  fi
   if [ -f "$LIVE_DIR/webui/ui.conf" ]; then
     mkdir -p "$MODPATH/webui"
     cp "$LIVE_DIR/webui/ui.conf" "$MODPATH/webui/ui.conf"
@@ -146,13 +155,35 @@ else
 fi
 sleep 0.5
 
-# post-fs-data.sh / service.sh / system.prop / uninstall.sh get their
+# v3.1.0 and earlier forced the system animation scales (Smooth Touch) on
+# every install, with no WebUI control left to turn it off. If the current
+# values are exactly what that legacy setting would have written, put them
+# back to the Android default (1.0). Any other value is the user's own and
+# is left alone.
+if [ -f "$LIVE_DIR/settings.conf" ]; then
+  LEGACY_MODE=$(grep '^SMOOTH_TOUCH_MODE=' "$LIVE_DIR/settings.conf" | tail -1 | cut -d= -f2 | tr -dc '0-9')
+  case "$LEGACY_MODE" in 1) LEGACY_SCALE="0.5" ;; 2) LEGACY_SCALE="0.0" ;; *) LEGACY_SCALE="" ;; esac
+  if [ -n "$LEGACY_SCALE" ]; then
+    A=$(settings get global window_animation_scale 2>/dev/null)
+    B=$(settings get global transition_animation_scale 2>/dev/null)
+    C=$(settings get global animator_duration_scale 2>/dev/null)
+    if [ "$A" = "$LEGACY_SCALE" ] && [ "$B" = "$LEGACY_SCALE" ] && [ "$C" = "$LEGACY_SCALE" ]; then
+      settings put global window_animation_scale 1.0 2>/dev/null
+      settings put global transition_animation_scale 1.0 2>/dev/null
+      settings put global animator_duration_scale 1.0 2>/dev/null
+      ui_print " Reset animation scales set by the removed Smooth Touch."; sleep 0.4
+    fi
+  fi
+fi
+
+# post-fs-data.sh / service.sh / uninstall.sh get their
 # permissions and SELinux context set automatically by install_module.
 # action.sh, apply.sh, lock.sh, and probe_device.sh aren't "known"
 # filenames to Magisk/KernelSU, so they need it set explicitly.
 set_perm "$MODPATH/action.sh" 0 0 0755
 set_perm "$MODPATH/apply.sh" 0 0 0755
 set_perm "$MODPATH/lock.sh" 0 0 0755
+set_perm "$MODPATH/common.sh" 0 0 0755
 set_perm "$MODPATH/tools/probe_device.sh" 0 0 0755
 [ -f "$MODPATH/tools/probe_touch.sh" ] && set_perm "$MODPATH/tools/probe_touch.sh" 0 0 0755
 sleep 0.3

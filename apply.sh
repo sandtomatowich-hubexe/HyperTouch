@@ -41,65 +41,28 @@ write() {
     return 1
 }
 
-# Saves a node's current value before we overwrite it, so revert can
-# restore it later instead of just guessing a stock value. Stored
-# under $MODDIR/.state, one file per node (path-safe name), only ever
-# written if it doesn't already hold a value — so re-running apply.sh
-# repeatedly never clobbers the *original* pre-module value with an
-# already-tweaked one.
-STATE_DIR="$MODDIR/.state"
-save_orig() {
-    node="$1"
-    [ -r "$node" ] || return 1
-    key=$(echo "$node" | tr '/' '_')
-    dst="$STATE_DIR/$key"
-    if [ ! -f "$dst" ]; then
-        mkdir -p "$STATE_DIR" 2>/dev/null
-        cat "$node" 2>/dev/null > "$dst"
-    fi
-}
-
-# Same idea as save_orig but for `settings get` values (deviceLevelList,
-# miui_home_animation_rate) rather than sysfs nodes — no /path to
-# derive a filename from, so the caller names the state file directly.
-save_setting_orig() {
-    namespace="$1"; key="$2"; statefile="$3"
-    dst="$STATE_DIR/$statefile"
-    [ -f "$dst" ] && return 0
-    val=$(settings get "$namespace" "$key" 2>/dev/null)
-    # `settings get` prints the literal string "null" for an unset
-    # key — don't persist that as if it were a real prior value.
-    [ -z "$val" ] || [ "$val" = "null" ] && return 0
-    mkdir -p "$STATE_DIR" 2>/dev/null
-    echo "$val" > "$dst"
-}
+# Shared helpers (safe config loader, original-value state, restore).
+# shellcheck disable=SC1090
+. "$MODDIR/common.sh"
+APPLY_RC=0
 
 echo "── HyperTouch: applying settings ──"
 
 # ── Concurrency lock ─────────────────────────────────────────
-# Shared with action.sh (see lock.sh) so settings.conf writes and this
-# apply pass share one critical section — the WebUI/manager writing
-# config and a concurrent apply run can no longer interleave.
-#
-# HT_LOCK_HELD lets a caller that already holds the lock (action.sh's
-# enable/disable/reset, which write config then run this script) tell
-# us to skip re-acquiring — otherwise this script's own mkdir would
-# block forever behind the caller's own held lock (deadlock: caller is
-# waiting on us to exit, we're waiting on caller's lock to free).
+# Shared with action.sh (see lock.sh). HT_LOCK_HELD=1 means the caller
+# (action.sh enable/disable/reset) already holds it and is waiting on us,
+# so re-acquiring would deadlock.
 # shellcheck disable=SC1090
 . "$MODDIR/lock.sh"
 if [ "$HT_LOCK_HELD" != "1" ]; then
-    ht_lock_acquire
-    _HT_ACQUIRED_HERE=1
+    ht_lock_acquire || { warn "could not get the HyperTouch lock — nothing applied"; exit 1; }
 fi
-
 
 # ── defaults, overridden by settings.conf ──────────────────
 REPORT_RATE_MODE=1
 DISABLE_POWERKEEPER=1
 POWERKEEPER_FULL_DISABLE=0
 SPOOF_BATTERY_TEMP=0
-SMOOTH_TOUCH_MODE=1
 PRIORITY_APPS=
 TG_LAG_FIX=0
 PARALLEL_ANIM=0
@@ -107,9 +70,12 @@ LAUNCHER_ANIM_RATE=0
 FORCE_120HZ=0
 FAST_CPU_RESPONSE=1
 GPU_FLOOR=0
+VM_TWEAKS_ENABLED=0
+SWAPPINESS=60
+FORCE_EXPERIMENTAL=0
 
-# shellcheck disable=SC1090
-[ -f "$CONF" ] && . "$CONF"
+# settings.conf is parsed, never executed (see common.sh).
+ht_load_conf "$CONF"
 
 # ── Device profile ──────────────────────────────────────────
 # Hardware-specific sysfs paths only run on devices we've actually
@@ -131,19 +97,35 @@ case "$DEVICE" in
         CPU_POLICIES="0 4 7"
         THERMAL_SCONFIG_PATH="/sys/devices/virtual/thermal/thermal_message/sconfig"
         BMS_TEMP_PATH="/sys/class/power_supply/bms/temp"
+        CPU_GOV_FORCE=1    # switch CPU clusters to schedutil (original duchamp behaviour)
+        GPU_GOV_FORCE=1    # switch Mali devfreq governor to simple_ondemand
         ;;
     rodin)
-        # POCO X7 Pro / Redmi Turbo 4 — Dimensity 8400-Ultra. Never
-        # probed on real hardware. Reuses duchamp's CPU_POLICIES because
-        # both chips genuinely share the same 1+3+4 cluster topology
-        # (published spec, not a guess) — but the touch/GPU paths below
-        # are carried over unverified, purely as a starting guess.
+        # POCO X7 Pro / Redmi Turbo 4 — Dimensity 8400-Ultra (MT6899).
+        # Probed on real units: the Goodix node, Mali devfreq path, thermal
+        # sconfig, bms temp and 0/4/7 cluster layout match duchamp, and
+        # writing 0 / 1 to switch_report_rate reads back 240HZ / 480HZ.
+        # BUT readback only proves the node accepted the value. A tester
+        # reported no real 480Hz effect, and the Rodin Essential project's
+        # docs state its 240/480Hz control goes through Xiaomi's touch HAL
+        # (the goodix_ts.0 sysfs node is only a fallback when that service
+        # is missing). So touch boost on Rodin is UNVERIFIED and this stays
+        # "experimental-named" until a measured effect is shown.
+        #
+        # Governors are NOT forced here (probe findings):
+        #  * the Mali governor is "dummy" (MediaTek's own GPU DVFS is in
+        #    charge); forcing devfreq's simple_ondemand would take that over
+        #  * some units run a custom kernel whose CPU governor is
+        #    "sugov_ext" (no schedutil dir), so forcing schedutil would
+        #    replace the vendor-tuned governor
         DEVICE_PROFILE="experimental-named"
         GOODIX_PATH="/sys/devices/platform/goodix_ts.0/switch_report_rate"
         MALI_PLATFORM="/sys/devices/platform/soc/13000000.mali/devfreq/13000000.mali"
         CPU_POLICIES="0 4 7"
         THERMAL_SCONFIG_PATH="/sys/devices/virtual/thermal/thermal_message/sconfig"
         BMS_TEMP_PATH="/sys/class/power_supply/bms/temp"
+        CPU_GOV_FORCE=0
+        GPU_GOV_FORCE=0
         ;;
     *)
         DEVICE_PROFILE="experimental"
@@ -152,6 +134,8 @@ case "$DEVICE" in
         CPU_POLICIES="0 4 7"
         THERMAL_SCONFIG_PATH="/sys/devices/virtual/thermal/thermal_message/sconfig"
         BMS_TEMP_PATH="/sys/class/power_supply/bms/temp"
+        CPU_GOV_FORCE=0
+        GPU_GOV_FORCE=0
         ;;
 esac
 
@@ -215,23 +199,36 @@ apply_hardware_tweaks() {
     # else: leave GOODIX_PATH as the profile default; write() will
     # report it as not-writable rather than fail silently.
 
-    save_orig "$GOODIX_PATH"
+    ht_save_node "$GOODIX_PATH"
     write "$GOODIX_PATH" "$REPORT_RATE_MODE"
 
-    save_orig "$MALI_PLATFORM/governor"
-    write "$MALI_PLATFORM/governor" "simple_ondemand"
+    if [ "$GPU_GOV_FORCE" = "1" ]; then
+        ht_save_node "$MALI_PLATFORM/governor"
+        write "$MALI_PLATFORM/governor" "simple_ondemand"
+    else
+        ht_restore_node "$MALI_PLATFORM/governor" && say "  GPU governor restored"
+        say "  GPU governor left as the vendor set it: $(cat "$MALI_PLATFORM/governor" 2>/dev/null)"
+    fi
 
     for p in $CPU_POLICIES; do
-        save_orig "/sys/devices/system/cpu/cpufreq/policy$p/scaling_governor"
-        write "/sys/devices/system/cpu/cpufreq/policy$p/scaling_governor" "schedutil"
+        gov="/sys/devices/system/cpu/cpufreq/policy$p/scaling_governor"
+        if [ "$CPU_GOV_FORCE" = "1" ]; then
+            ht_save_node "$gov"
+            write "$gov" "schedutil"
+        else
+            ht_restore_node "$gov" && say "  policy$p governor restored"
+        fi
     done
+    [ "$CPU_GOV_FORCE" = "1" ] || say "  CPU governor left as the vendor set it: $(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null)"
 
-    save_orig "$THERMAL_SCONFIG_PATH"
+    ht_save_node "$THERMAL_SCONFIG_PATH"
     write "$THERMAL_SCONFIG_PATH" 6
 
     if [ "$SPOOF_BATTERY_TEMP" = "1" ]; then
-        save_orig "$BMS_TEMP_PATH"
+        ht_save_node "$BMS_TEMP_PATH"
         write "$BMS_TEMP_PATH" 250
+    else
+        ht_restore_node "$BMS_TEMP_PATH" && say "  battery temp restored"
     fi
 }
 
@@ -240,16 +237,41 @@ apply_hardware_tweaks() {
 # runs on confirmed/named-experimental devices since it touches
 # CPU/GPU scaling behavior specific to this chip family.
 apply_duchamp_tuning() {
-    echo "→ duchamp tuning"
+    echo "→ CPU/GPU tuning"
     if [ "$FAST_CPU_RESPONSE" = "1" ]; then
+        # Kernels differ: Android-common/Qualcomm trees have separate
+        # up_rate_limit_us / down_rate_limit_us; upstream (and the duchamp
+        # 6.1 MediaTek kernel) only has a single rate_limit_us. Use whichever
+        # exists, and report honestly if neither does.
+        fast_done=0
         for p in $CPU_POLICIES; do
             sd="/sys/devices/system/cpu/cpufreq/policy$p/schedutil"
-            save_orig "$sd/up_rate_limit_us"
-            save_orig "$sd/down_rate_limit_us"
-            write "$sd/up_rate_limit_us" 500
-            write "$sd/down_rate_limit_us" 20000
+            if [ -w "$sd/up_rate_limit_us" ]; then
+                ht_save_node "$sd/up_rate_limit_us"
+                ht_save_node "$sd/down_rate_limit_us"
+                write "$sd/up_rate_limit_us" 500
+                write "$sd/down_rate_limit_us" 20000
+                fast_done=$((fast_done + 1))
+            elif [ -w "$sd/rate_limit_us" ]; then
+                ht_save_node "$sd/rate_limit_us"
+                write "$sd/rate_limit_us" 500
+                fast_done=$((fast_done + 1))
+            else
+                warn "  policy$p: no writable schedutil rate limit (governor tunables missing)"
+            fi
         done
-        say "  fast CPU response: ramps up quicker on touch input"
+        if [ "$fast_done" -gt 0 ]; then
+            say "  fast CPU response: applied on $fast_done CPU cluster(s)"
+        else
+            warn "  fast CPU response: NOT applied — this kernel exposes no writable schedutil rate limit"
+        fi
+    else
+        for p in $CPU_POLICIES; do
+            sd="/sys/devices/system/cpu/cpufreq/policy$p/schedutil"
+            for n in up_rate_limit_us down_rate_limit_us rate_limit_us; do
+                ht_restore_node "$sd/$n" && say "  restored: policy$p $n"
+            done
+        done
     fi
     if [ "$GPU_FLOOR" = "1" ]; then
         freqs="$MALI_PLATFORM/available_frequencies"
@@ -260,7 +282,7 @@ apply_duchamp_tuning() {
             # with tabs or newlines instead of spaces.
             floor=$(tr '[:space:]' '\n' < "$freqs" | grep -v '^$' | sort -n | sed -n '2p')
             if [ -n "$floor" ]; then
-                save_orig "$floor_file"
+                ht_save_node "$floor_file"
                 write "$floor_file" "$floor"
             else
                 warn "  GPU floor: couldn't parse available_frequencies"
@@ -268,6 +290,9 @@ apply_duchamp_tuning() {
         else
             warn "  GPU floor: available_frequencies not readable, skipping"
         fi
+    fi
+    if [ "$GPU_FLOOR" != "1" ]; then
+        ht_restore_node "$MALI_PLATFORM/min_freq" && say "  GPU floor restored"
     fi
 }
 
@@ -278,40 +303,28 @@ apply_powerkeeper() {
         say "  not present on this ROM, skipping"
         return
     fi
+    # Remember whether PowerKeeper was already disabled before we touched it
+    # (captured once) so turning the option off restores THAT, not a guess.
+    ht_pk_save
+
     if [ "$DISABLE_POWERKEEPER" = "1" ]; then
-        pm disable-user --user 0 com.miui.powerkeeper/.statemachine.PowerStateMachineService >/dev/null 2>&1
+        pm disable-user --user 0 "$HT_PK_COMP" >/dev/null 2>&1
         say "  disabled"
     else
-        pm enable com.miui.powerkeeper/.statemachine.PowerStateMachineService >/dev/null 2>&1
-        say "  enabled (stock)"
+        ht_pk_restore_comp
+        say "  restored to its pre-HyperTouch state"
     fi
 
-    # Community-verified separately from the single-component disable
-    # above: PowerKeeper (branded "Battery & Performance") is also
-    # what caps some apps to 60Hz even on 120Hz-capable phones.
-    # Disabling the whole app — not just the state-machine service —
-    # is the confirmed fix, but it's a bigger behavior change: it also
-    # takes Game Turbo's boost/Wild Boost profiles down with it, since
-    # they're part of the same com.miui.powerkeeper package, not a
-    # separate app. Opt-in toggle rather than folded into the one above.
+    # Opt-in: disabling the WHOLE package (also takes Game Turbo's
+    # boost/Wild Boost profiles down — same package). Turning it back off
+    # must explicitly re-enable the package; re-enabling only the
+    # component (v3.1.0) left the package itself disabled.
     if [ "$POWERKEEPER_FULL_DISABLE" = "1" ]; then
-        pm disable-user --user 0 com.miui.powerkeeper >/dev/null 2>&1
+        pm disable-user --user 0 "$HT_PK_PKG" >/dev/null 2>&1
         say "  fully disabled (unlocks apps HyperOS caps to 60Hz — also disables Game Turbo boost profiles, same package)"
+    else
+        ht_pk_restore_pkg
     fi
-}
-
-# ── Smooth Touch — userspace animation scaling, kernel-independent ──
-apply_smooth_touch() {
-    echo "→ smooth touch"
-    case "$SMOOTH_TOUCH_MODE" in
-        0) scale="1.0" ;;
-        2) scale="0.0" ;;
-        *) scale="0.5" ;;
-    esac
-    settings put global window_animation_scale "$scale" 2>/dev/null
-    settings put global transition_animation_scale "$scale" 2>/dev/null
-    settings put global animator_duration_scale "$scale" 2>/dev/null
-    say "  animation scale = $scale"
 }
 
 # ── Parallel Animation — real mechanism, confirmed working ──
@@ -321,13 +334,16 @@ apply_smooth_touch() {
 # the tier that unlocks it — this raises the classification directly,
 # no launcher/app modification involved.
 apply_parallel_anim() {
-    [ "$PARALLEL_ANIM" != "1" ] && return
+    if [ "$PARALLEL_ANIM" != "1" ]; then
+        ht_restore_setting system deviceLevelList settings_deviceLevelList && say "→ parallel animation: restored original deviceLevelList"
+        return
+    fi
     echo "→ parallel animation"
     if [ "$IS_HYPEROS" != "1" ]; then
         warn "  HyperOS-only feature, skipped on $ROM"
         return
     fi
-    save_setting_orig system deviceLevelList settings_deviceLevelList
+    ht_save_setting system deviceLevelList settings_deviceLevelList
     settings put system deviceLevelList "v:1,c:3,g:3" 2>/dev/null
     # Best-effort live pickup: the animation-tier logic that reads this
     # key lives close to system_server, so there's no single userspace
@@ -345,13 +361,19 @@ apply_parallel_anim() {
 # it's a real way to influence com.miui.home's animation behavior
 # without touching the launcher's own code (no Java/smali involved).
 apply_launcher_anim() {
-    [ "$LAUNCHER_ANIM_RATE" != "1" ] && return
+    if [ "$LAUNCHER_ANIM_RATE" != "1" ]; then
+        if ht_restore_setting system miui_home_animation_rate settings_miui_home_animation_rate; then
+            say "→ launcher animation rate: restored original"
+            am force-stop com.miui.home 2>/dev/null
+        fi
+        return
+    fi
     echo "→ launcher animation rate"
     if ! pm path com.miui.home >/dev/null 2>&1; then
         warn "  com.miui.home not present on this ROM, skipped"
         return
     fi
-    save_setting_orig system miui_home_animation_rate settings_miui_home_animation_rate
+    ht_save_setting system miui_home_animation_rate settings_miui_home_animation_rate
     settings put system miui_home_animation_rate 1 2>/dev/null
     # Force-stopping the launcher is safe and instant — Android restarts
     # it automatically the moment it's needed (immediately, since it's
@@ -367,35 +389,53 @@ apply_launcher_anim() {
 # Options' "Force peak refresh rate", just exposed here since HyperOS
 # doesn't have its own equivalent toggle.
 apply_force_120hz() {
-    [ "$FORCE_120HZ" != "1" ] && return
+    if [ "$FORCE_120HZ" != "1" ]; then
+        _r1=1
+        ht_restore_setting system min_refresh_rate settings_min_refresh_rate && _r1=0
+        ht_restore_setting system peak_refresh_rate settings_peak_refresh_rate && _r1=0
+        [ "$_r1" = "0" ] && say "→ force 120Hz: restored original refresh-rate settings"
+        return
+    fi
     echo "→ force 120Hz"
 
-    # Only force a rate the display can actually reach — check the
-    # highest mode SurfaceFlinger reports before writing anything, so
-    # a 90Hz-capped device doesn't get told to hold a rate it can't
-    # hit (that would just make the compositor request something it
-    # silently clamps, not actually force anything).
-    # SurfaceFlinger's fps= lines can report only the *current* transient
-    # rate on LTPO panels (confirmed: a real device returned 115 here,
-    # a mid-ramp value, not the panel's actual peak) — dumpsys display
-    # lists every supported mode's refresh rate explicitly, which is
-    # what "does this panel support 120Hz+" actually needs.
-    max_hz=$(dumpsys display 2>/dev/null | grep -oE 'refreshRate=[0-9]+\.[0-9]+' | cut -d= -f2 | cut -d. -f1 | sort -rn | head -1)
+    # Highest refresh rate the panel can reach. `dumpsys display` lists every
+    # supported mode explicitly, so it is preferred over SurfaceFlinger's
+    # fps= (which on LTPO panels can show a transient mid-ramp rate).
+    # Values are ROUNDED, not truncated: panels commonly report 119.99,
+    # which truncation turned into 119 and wrongly rejected.
+    max_hz=$(dumpsys display 2>/dev/null | grep -oE '(refreshRate|fps)=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | awk '{printf "%d\n", $1+0.5}' | sort -rn | head -1)
     if [ -z "$max_hz" ]; then
-        # Fallback to the SurfaceFlinger method if this device's dumpsys
-        # display output doesn't use that exact key.
-        max_hz=$(dumpsys SurfaceFlinger 2>/dev/null | grep -oE 'fps=[0-9]+\.[0-9]+' | cut -d= -f2 | cut -d. -f1 | sort -rn | head -1)
+        max_hz=$(dumpsys SurfaceFlinger 2>/dev/null | grep -oE 'fps=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | awk '{printf "%d\n", $1+0.5}' | sort -rn | head -1)
     fi
-    if [ -z "$max_hz" ] || [ "$max_hz" -lt 120 ] 2>/dev/null; then
-        warn "  display doesn't report a 120Hz+ mode, skipping (found: ${max_hz:-unknown})"
+    if [ -z "$max_hz" ]; then
+        # Couldn't determine it. Don't treat "unknown" as "unsupported" —
+        # try anyway; the read-back check below reports honestly.
+        warn "  couldn't determine the panel's max refresh rate — trying anyway"
+    elif [ "$max_hz" -lt 118 ] 2>/dev/null; then
+        warn "  display tops out at ${max_hz}Hz, skipping"
         return
     fi
 
-    save_setting_orig system min_refresh_rate settings_min_refresh_rate
-    save_setting_orig system peak_refresh_rate settings_peak_refresh_rate
+    ht_save_setting system min_refresh_rate settings_min_refresh_rate
+    ht_save_setting system peak_refresh_rate settings_peak_refresh_rate
     settings put system min_refresh_rate 120 2>/dev/null
     settings put system peak_refresh_rate 120 2>/dev/null
-    say "  min/peak refresh rate pinned to 120Hz — real battery cost, by design"
+
+    # Verify instead of assuming success. Re-read after a moment in case the
+    # system immediately overwrites the values.
+    sleep 1
+    got_min=$(settings get system min_refresh_rate 2>/dev/null)
+    got_peak=$(settings get system peak_refresh_rate 2>/dev/null)
+    if is_120 "$got_min" && is_120 "$got_peak"; then
+        say "  min/peak refresh rate pinned to 120Hz (verified) — real battery cost, by design"
+    else
+        warn "  120Hz NOT applied: read back min=${got_min:-unset} peak=${got_peak:-unset} (the system rejected or overrode it)"
+        APPLY_RC=2
+    fi
+}
+is_120() {
+    case "$1" in 120|120.0|120.00|120.000000) return 0 ;; esac
+    return 1
 }
 
 # ── VM / ZRAM — live counterpart to post-fs-data.sh's early-boot pass.
@@ -405,9 +445,28 @@ apply_force_120hz() {
 # this mirrors that script's logic here too: toggling the setting takes
 # effect immediately, and post-fs-data.sh still re-applies it on the
 # next boot so it survives a reboot either way.
+vm_nodes() {
+    echo /proc/sys/vm/page-cluster
+    echo /sys/block/zram0/max_comp_streams
+    echo /proc/sys/vm/swappiness
+    echo /proc/sys/vm/stat_interval
+    for q in /sys/block/zram*/queue /sys/block/mmcblk*/queue /sys/block/sd*/queue; do
+        [ -d "$q" ] && echo "$q/read_ahead_kb"
+    done
+    echo /proc/sys/kernel/sched_autogroup_enabled
+}
 apply_vm_tweaks() {
-    [ "$VM_TWEAKS_ENABLED" != "1" ] && return
+    if [ "$VM_TWEAKS_ENABLED" != "1" ]; then
+        # Turning the option off restores what was there before.
+        for n in $(vm_nodes); do
+            ht_restore_node "$n" && say "→ VM: restored ${n##*/}"
+        done
+        return
+    fi
     echo "→ VM / ZRAM (live)"
+    # post-fs-data.sh may already have applied these at boot; it saves the
+    # originals first, and ht_save_node never overwrites a capture.
+    for n in $(vm_nodes); do ht_save_node "$n"; done
     write /proc/sys/vm/page-cluster 0
     write /sys/block/zram0/max_comp_streams 4
     write /proc/sys/vm/swappiness "$SWAPPINESS"
@@ -424,21 +483,29 @@ apply_priority_apps() {
     apps="$PRIORITY_APPS"
     if [ "$TG_LAG_FIX" = "1" ]; then
         case " $apps " in
-            *" org.telegram.messenger "*) ;;  # already present, don't duplicate
-            *) apps="$apps org.telegram.messenger" ;;
+            *" org.telegram.messenger "*) ;;
+            *) apps="${apps:+$apps }org.telegram.messenger" ;;
         esac
     fi
-    apps="$(echo "$apps" | xargs)"
-    if [ -z "$apps" ]; then
-        return
-    fi
+
+    # Apps removed from the list since the last run: undo ALL their changes
+    # (Doze whitelist, both AppOps, standby bucket).
+    for f in "$HT_STATE_DIR"/prio_*; do
+        [ -f "$f" ] || continue
+        old=${f##*/prio_}
+        case " $apps " in *" $old "*) continue ;; esac
+        ht_prio_restore "$old" && say "→ priority app removed, restored: $old"
+    done
+
+    [ -z "$apps" ] && return
     echo "→ priority apps"
     for pkg in $apps; do
-        [ -z "$pkg" ] && continue
+        ht_valid_pkg "$pkg" || { warn "  invalid package name, skipping"; continue; }
         if ! pm path "$pkg" >/dev/null 2>&1; then
             warn "  not installed, skipping: $pkg"
             continue
         fi
+        ht_prio_save "$pkg"     # originals first, only once per package
         dumpsys deviceidle whitelist "+$pkg" >/dev/null 2>&1
         cmd appops set "$pkg" RUN_IN_BACKGROUND allow >/dev/null 2>&1
         cmd appops set "$pkg" RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1
@@ -489,6 +556,9 @@ update_live_info() {
     fi
 
     desc="Touch: $touch_rate · RAM $ram · $ROM · $DEVICE_PROFILE"
+    # ROM strings come from system props: strip characters that are special
+    # in a sed replacement so they can't corrupt module.prop.
+    desc=$(printf '%s' "$desc" | tr -d '|&\\')
     sed -i "s|^description=.*|description=$desc|" "$PROP" 2>/dev/null
 }
 
@@ -504,6 +574,9 @@ if [ "$TG_LAG_FIX" = "1" ]; then
 fi
 
 # ── run ──
+# Capture PowerKeeper's pre-HyperTouch state before anything else runs.
+ht_pk_save
+
 if [ "$DEVICE_PROFILE" = "confirmed" ] || [ "$DEVICE_PROFILE" = "experimental-named" ] || [ "$FORCE_EXPERIMENTAL" = "1" ]; then
     apply_hardware_tweaks
     apply_duchamp_tuning
@@ -512,7 +585,6 @@ else
 fi
 
 apply_powerkeeper
-apply_smooth_touch
 apply_parallel_anim
 apply_launcher_anim
 apply_force_120hz
@@ -521,6 +593,7 @@ apply_priority_apps
 update_live_info
 
 echo "── done ──"
-log -p i -t "$LOGTAG" "apply.sh completed (profile=$DEVICE_PROFILE)."
+log -p i -t "$LOGTAG" "apply.sh completed (profile=$DEVICE_PROFILE, rc=$APPLY_RC)."
 
-[ "$_HT_ACQUIRED_HERE" = "1" ] && ht_lock_release
+[ "$HT_LOCK_HELD" != "1" ] && ht_lock_release
+exit "$APPLY_RC"

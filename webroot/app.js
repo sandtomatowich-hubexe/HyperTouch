@@ -140,11 +140,20 @@
   var state = {
     REPORT_RATE_MODE:"1", DISABLE_POWERKEEPER:"1", SPOOF_BATTERY_TEMP:"0",
     FAST_CPU_RESPONSE:"1", GPU_FLOOR:"0", POWERKEEPER_FULL_DISABLE:"0",
-    SMOOTH_TOUCH_MODE:"1", PARALLEL_ANIM:"0", LAUNCHER_ANIM_RATE:"0", FORCE_120HZ:"0",
+    PARALLEL_ANIM:"0", LAUNCHER_ANIM_RATE:"0", FORCE_120HZ:"0",
     PRIORITY_APPS:"", TG_LAG_FIX:"0",
     VM_TWEAKS_ENABLED:"0", SWAPPINESS:"60",
-    CONF_VERSION:"5"
+    FORCE_EXPERIMENTAL:"0",   // no UI toggle, but must survive a WebUI save
+    CONF_VERSION:"6"
   };
+  var confLoaded = false;      // never write settings.conf before a successful read
+
+  // Android package name: dot-separated [A-Za-z0-9_] segments, >= 2 segments.
+  // Same rule as the shell side (common.sh ht_valid_pkg) — values end up in
+  // commands run as root, so nothing else is accepted.
+  var PKG_RE = /^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+$/;
+  function isValidPkg(p){ return p.length <= 255 && PKG_RE.test(p); }
+  function stripQuotes(v){ return String(v).replace(/^[\s"']+|[\s"']+$/g, ""); }
 
   // ============================================================
   // WebUI-only preferences (webui/ui.conf) — separate file, never
@@ -286,9 +295,6 @@
       "FAST_CPU_RESPONSE=" + state.FAST_CPU_RESPONSE,
       "GPU_FLOOR=" + state.GPU_FLOOR,
       "",
-      "# ── Smooth Touch (userspace, kernel-independent) ────────────",
-      "SMOOTH_TOUCH_MODE=" + state.SMOOTH_TOUCH_MODE,
-      "",
       "# ── Parallel Animation (reboot recommended) ──────────────────",
       "PARALLEL_ANIM=" + state.PARALLEL_ANIM,
       "LAUNCHER_ANIM_RATE=" + state.LAUNCHER_ANIM_RATE,
@@ -304,29 +310,60 @@
       "VM_TWEAKS_ENABLED=" + state.VM_TWEAKS_ENABLED,
       "SWAPPINESS=" + state.SWAPPINESS,
       "",
+      (state.FORCE_EXPERIMENTAL === "1" ? "# Try duchamp's hardware paths on an unrecognised device." : null),
+      (state.FORCE_EXPERIMENTAL === "1" ? "FORCE_EXPERIMENTAL=1" : null),
+      "",
       "# ── Internal — do not edit ───────────────────────────────────",
       "CONF_VERSION=" + state.CONF_VERSION
-    ].join("\n");
+    ].filter(function(l){ return l !== null; }).join("\n");
   }
 
   async function loadConf(){
     var r = await ksuExec("cat " + CONF);
-    if (r.errno === 0 && r.stdout){
-      var parsed = parseConf(r.stdout);
-      Object.keys(parsed).forEach(function(k){ if (k in state) state[k] = parsed[k]; });
+    if (r.errno === 0){
+      var parsed = parseConf(r.stdout || "");
+      Object.keys(parsed).forEach(function(k){ if (k in state) state[k] = stripQuotes(parsed[k]); });
+      // Old builds stacked an extra pair of quotes on PRIORITY_APPS at every
+      // save; stripQuotes undoes that. Drop anything that isn't a valid name.
+      state.PRIORITY_APPS = state.PRIORITY_APPS.split(/\s+/).filter(function(p){
+        if (!p) return false;
+        if (isValidPkg(p)) return true;
+        logErr("Dropped invalid package name from PRIORITY_APPS");
+        return false;
+      }).join(" ");
+      if (!/^\d{1,3}$/.test(state.SWAPPINESS)) state.SWAPPINESS = "60";
+      confLoaded = true;
       render();
       setStatus("Settings loaded.");
       logOk("settings.conf loaded (" + Object.keys(parsed).length + " keys)");
     } else {
+      confLoaded = false;
       render();
       setStatus(window.ksu ? "Could not read settings.conf — using defaults." : "Open this from your root manager to enable controls.", true);
       logErr("Could not read settings.conf (errno " + r.errno + ")" + (r.stderr ? ": " + r.stderr : ""));
     }
   }
 
+  // Writes settings.conf atomically under the shared HyperTouch lock.
+  // Resolves to the exec result; callers MUST check errno — the old version
+  // ignored failures and went on to apply a config that was never saved.
   async function saveConf(){
+    if (!confLoaded){
+      return {errno:-2, stdout:"", stderr:"settings.conf was never read successfully; refusing to overwrite it with defaults"};
+    }
     var tmp = CONF + ".tmp";
-    var cmd = "cat > '" + tmp + "' << 'HT_EOF'\n" + renderConf() + "\nHT_EOF\nmv -f '" + tmp + "' '" + CONF + "'";
+    // The whole thing runs in a ( subshell ): the WebUI bridge feeds commands
+    // to a shell that must NOT exit, so a bare top-level `exit` made the save
+    // succeed on disk but be reported as a failure.
+    var cmd =
+      "(\n" +
+      "MODDIR='" + MODDIR + "'\n" +
+      ". \"$MODDIR/lock.sh\" && ht_lock_acquire || exit 3\n" +
+      "cat > '" + tmp + "' << 'HT_EOF' || { rm -f '" + tmp + "'; ht_lock_release; exit 1; }\n" +
+      renderConf() + "\nHT_EOF\n" +
+      "[ -s '" + tmp + "' ] && mv -f '" + tmp + "' '" + CONF + "'\n" +
+      "rc=$?\nht_lock_release\nexit $rc\n" +
+      ")";
     return ksuExec(cmd);
   }
 
@@ -361,7 +398,16 @@
   async function applyNow(showBusy){
     var btns = [document.getElementById("applyBtn"), document.getElementById("applyBtnTweaks"), document.getElementById("applyBtnApps")];
     if (showBusy) btns.forEach(function(b){ if(b){ b.disabled = true; b.textContent = "Applying…"; } });
-    await saveConf();
+    var sv = await saveConf();
+    if (sv.errno !== 0){
+      // Don't apply a config that isn't on disk; resync the UI with what is.
+      if (showBusy) btns.forEach(function(b){ if(b){ b.disabled = false; b.textContent = "Apply now"; } });
+      logErr("Saving settings.conf failed (errno " + sv.errno + ")" + (sv.stderr ? ": " + sv.stderr : ""));
+      showToast("Save failed — nothing applied", true);
+      if (confLoaded) await loadConf();
+      setStatus("Could not save settings.conf (errno " + sv.errno + "). Nothing was applied.", true);
+      return sv;
+    }
     var t0 = Date.now();
     var r = await ksuExec("sh " + MODDIR + "/apply.sh 2>&1");
     var ms = Date.now() - t0;
@@ -780,6 +826,11 @@
     document.getElementById("pkgAdd").addEventListener("click", function(){
       var v = els.pkgInput.value.trim();
       if (!v) return;
+      if (!isValidPkg(v)){
+        showToast("Invalid package name", true);
+        logErr("Rejected priority app (letters, digits, _ and dots only, e.g. org.telegram.messenger)");
+        return;
+      }
       var current = state.PRIORITY_APPS.split(" ").filter(Boolean);
       if (current.indexOf(v) === -1) current.push(v);
       state.PRIORITY_APPS = current.join(" ");

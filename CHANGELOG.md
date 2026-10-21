@@ -1,5 +1,31 @@
 # Changelog
 
+## v3.1.5
+
+**Fixes**
+- **Revert restored to the wrong paths.** Paths with underscores (like `up_rate_limit_us`) were mangled when decoded, so most values never came back. The real path is now stored and used
+- **Update no longer loses your original values.** `.state` is now kept across updates, so the new version can't mistake already-tweaked values for the originals
+- **Unset settings restore as unset.** Values that didn't exist before (e.g. the refresh-rate keys) are deleted on restore instead of staying pinned
+- **Switching a feature off now undoes it** (Force 120Hz, Parallel/Launcher Animation, Fast CPU, GPU floor, VM tweaks, battery spoof, a Priority App) instead of just stopping
+- **PowerKeeper:** turning Full Disable off now re-enables the whole package, and the previous enabled/disabled state is saved and restored instead of assuming "enabled"
+- **Priority Apps:** fixed the config gaining extra quotes on every save, which broke apply/revert/uninstall. Revert and uninstall now undo everything (Doze whitelist, both AppOps, standby bucket). Package names are validated
+- **Security:** `settings.conf` is no longer run as a root shell script. It is parsed and every value is validated
+- **WebUI saving:** a failed save now stops and shows the error instead of applying an unsaved config. Writes are atomic, take the shared lock, and never overwrite the config if it couldn't be read. `FORCE_EXPERIMENTAL` is no longer dropped on save
+- **Lock:** a running operation's lock is no longer stolen after a few seconds. Only a dead owner's lock is reclaimed
+- **Force 120Hz:** the result is read back and reported honestly. Detection rounds (119.99 counts as 120) and no longer gives up when the rate can't be read
+- **Fast CPU Response** now works on kernels with a single `rate_limit_us` (it previously did nothing and still reported success)
+- **Uninstall** no longer forces `persist.sys.miui_optimization`, and waits for boot to finish so the restore actually runs
+- Boot-time VM tweaks now save the original values first
+- Touch report-rate restore returns the original rate instead of always writing 0
+- `apply.sh` no longer returns a stray error status when run from `action.sh`; ROM strings can no longer corrupt the module description
+
+**Changes**
+- Smooth Touch is fully removed from the config, scripts and UI
+- Removed `system.prop` — every prop in it was a no-op or already the default
+- Rodin (experimental): CPU/GPU governors are left as the vendor set them
+- `tools/probe_device.sh` rewritten: still read-only, collects far more
+- README rewritten with a "How restore works" section; the README logo now loads from its URL; WebUI section "Duchamp Tuning" renamed "CPU & GPU Tuning"
+
 ## v3.1.0
 
 **New: Force 120Hz Everywhere**
