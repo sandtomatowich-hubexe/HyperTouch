@@ -78,7 +78,7 @@ ht_load_conf() {
         ht_clean_val "${_hc_line#*=}"
         _hc_val="$HT_CLEAN"
         case "$_hc_key" in
-            REPORT_RATE_MODE|DISABLE_POWERKEEPER|POWERKEEPER_FULL_DISABLE|SPOOF_BATTERY_TEMP|FAST_CPU_RESPONSE|GPU_FLOOR|PARALLEL_ANIM|LAUNCHER_ANIM_RATE|FORCE_120HZ|TG_LAG_FIX|VM_TWEAKS_ENABLED|FORCE_EXPERIMENTAL)
+            REPORT_RATE_MODE|DISABLE_POWERKEEPER|POWERKEEPER_FULL_DISABLE|SPOOF_BATTERY_TEMP|FAST_CPU_RESPONSE|GPU_FLOOR|PARALLEL_ANIM|LAUNCHER_ANIM_RATE|FORCE_120HZ|TG_LAG_FIX|VM_TWEAKS_ENABLED|FORCE_EXPERIMENTAL|KEEP_APPLIED)
                 case "$_hc_val" in
                     0|1) eval "$_hc_key=\$_hc_val" ;;
                     *) ht_log_w "settings.conf: ignoring invalid value for $_hc_key" ;;
@@ -329,4 +329,29 @@ ht_prio_restore_all() {
         _hw_pkg=${_hw_f##*/prio_}
         ht_prio_restore "$_hw_pkg" && echo "  restored priority app: $_hw_pkg"
     done
+}
+
+# ─────────────────────────────────────────────────────────────────────
+# Keep-applied watcher (see watch.sh)
+# ─────────────────────────────────────────────────────────────────────
+ht_watch_running() {
+    _hv_pid=$(cat "$MODDIR/.watch.pid" 2>/dev/null)
+    [ -n "$_hv_pid" ] && kill -0 "$_hv_pid" 2>/dev/null
+}
+
+ht_watch_stop() {
+    _hv_pid=$(cat "$MODDIR/.watch.pid" 2>/dev/null)
+    [ -n "$_hv_pid" ] && kill "$_hv_pid" 2>/dev/null
+    rm -f "$MODDIR/.watch.pid" 2>/dev/null
+}
+
+ht_watch_start() {
+    [ -f "$MODDIR/watch.sh" ] || return 1
+    ht_watch_running && return 0
+    if command -v setsid >/dev/null 2>&1; then
+        setsid nohup sh "$MODDIR/watch.sh" >/dev/null 2>&1 &
+    else
+        nohup sh "$MODDIR/watch.sh" >/dev/null 2>&1 &
+    fi
+    return 0
 }

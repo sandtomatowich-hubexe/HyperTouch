@@ -139,7 +139,7 @@
   // ============================================================
   var state = {
     REPORT_RATE_MODE:"1", DISABLE_POWERKEEPER:"1", SPOOF_BATTERY_TEMP:"0",
-    FAST_CPU_RESPONSE:"1", GPU_FLOOR:"0", POWERKEEPER_FULL_DISABLE:"0",
+    FAST_CPU_RESPONSE:"1", KEEP_APPLIED:"1", GPU_FLOOR:"0", POWERKEEPER_FULL_DISABLE:"0",
     PARALLEL_ANIM:"0", LAUNCHER_ANIM_RATE:"0", FORCE_120HZ:"0",
     PRIORITY_APPS:"", TG_LAG_FIX:"0",
     VM_TWEAKS_ENABLED:"0", SWAPPINESS:"60",
@@ -293,6 +293,7 @@
       "",
       "# ── Duchamp Tuning (confirmed / named-experimental devices only) ──",
       "FAST_CPU_RESPONSE=" + state.FAST_CPU_RESPONSE,
+      "KEEP_APPLIED=" + state.KEEP_APPLIED,
       "GPU_FLOOR=" + state.GPU_FLOOR,
       "",
       "# ── Parallel Animation (reboot recommended) ──────────────────",
@@ -448,6 +449,7 @@
     els.swPowerkeeper.classList.toggle("on", state.DISABLE_POWERKEEPER === "1");
     els.swBatterySpoof.classList.toggle("on", state.SPOOF_BATTERY_TEMP === "1");
     els.swFastCpu.classList.toggle("on", state.FAST_CPU_RESPONSE === "1");
+    els.swKeepApplied.classList.toggle("on", state.KEEP_APPLIED === "1");
     els.swGpuFloor.classList.toggle("on", state.GPU_FLOOR === "1");
     els.swPowerkeeperFull.classList.toggle("on", state.POWERKEEPER_FULL_DISABLE === "1");
     els.swParallelAnim.classList.toggle("on", state.PARALLEL_ANIM === "1");
@@ -752,6 +754,7 @@
     els.swPowerkeeperFull = document.getElementById("swPowerkeeperFull");
     els.swBatterySpoof = document.getElementById("swBatterySpoof");
     els.swFastCpu = document.getElementById("swFastCpu");
+    els.swKeepApplied = document.getElementById("swKeepApplied");
     els.swGpuFloor = document.getElementById("swGpuFloor");
     els.swParallelAnim = document.getElementById("swParallelAnim");
     els.swLauncherAnim = document.getElementById("swLauncherAnim");
@@ -807,6 +810,7 @@
     els.swPowerkeeper.addEventListener("click", function(){ toggleState("DISABLE_POWERKEEPER", "PowerKeeper disable"); });
     els.swBatterySpoof.addEventListener("click", function(){ toggleState("SPOOF_BATTERY_TEMP", "Battery temp spoof"); });
     els.swFastCpu.addEventListener("click", function(){ toggleState("FAST_CPU_RESPONSE", "Fast CPU response"); });
+    els.swKeepApplied.addEventListener("click", function(){ toggleState("KEEP_APPLIED", "Keep tweaks applied"); });
     els.swGpuFloor.addEventListener("click", function(){ toggleState("GPU_FLOOR", "GPU floor"); });
     els.swPowerkeeperFull.addEventListener("click", function(){ toggleState("POWERKEEPER_FULL_DISABLE", "PowerKeeper full disable"); });
     els.swParallelAnim.addEventListener("click", function(){ toggleState("PARALLEL_ANIM", "Parallel animation"); });

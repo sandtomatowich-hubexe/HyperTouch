@@ -27,6 +27,7 @@ LOGTAG="HyperTouch"
 PRIORITY_APPS=
 TG_LAG_FIX=0
 ht_load_conf "$CONF"
+ht_watch_stop        # stop the keep-applied watcher if it is running
 
 SNAP="/data/local/tmp/hypertouch_uninstall.$$"
 LIVE=0

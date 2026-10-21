@@ -28,6 +28,11 @@ SPOOF_BATTERY_TEMP=0
 # on touch input for snappier UI response, small battery cost.
 FAST_CPU_RESPONSE=1
 
+# Re-applies the touch report rate and CPU rate limit if Xiaomi's services
+# change them while the phone is running (checked every 30s, only the two
+# values; does not touch the thermal profile or governors).
+KEEP_APPLIED=1
+
 # Keeps the GPU off its lowest frequency step to reduce micro-stutter
 # from downclocking between frames. Bigger battery cost than the CPU
 # tweak above, so off by default.

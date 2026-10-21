@@ -13,6 +13,7 @@
 #   action.sh enable <feature>    boost | powerkeeper | battery-spoof |
 #                                 fast-cpu | gpu-floor | powerkeeper-full |
 #                                 parallel-anim | launcher-anim | force-120hz |
+#                                 keep-applied |
 #                                 tg-fix
 #   action.sh disable <feature>   (same feature names)
 #   action.sh reset               restore settings.conf to shipped defaults
@@ -56,6 +57,7 @@ feature_key() {
         parallel-anim)     echo PARALLEL_ANIM ;;
         launcher-anim)     echo LAUNCHER_ANIM_RATE ;;
         force-120hz)       echo FORCE_120HZ ;;
+        keep-applied)      echo KEEP_APPLIED ;;
         tg-fix)            echo TG_LAG_FIX ;;
         *)                 echo "" ;;
     esac
@@ -86,13 +88,14 @@ cmd_status() {
     echo "  force 120Hz    : $(conf_get FORCE_120HZ)"
     echo "  priority apps  : $(conf_get PRIORITY_APPS)"
     echo "  vm tweaks      : $(conf_get VM_TWEAKS_ENABLED)"
+    echo "  keep applied   : $(conf_get KEEP_APPLIED)  (watcher: $(ht_watch_running && echo running || echo stopped))"
     echo "  tg lag fix     : $(conf_get TG_LAG_FIX)  (experimental)"
 }
 
 cmd_enable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, force-120hz, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, force-120hz, keep-applied, tg-fix"
         exit 1
     fi
     # Config write and the apply run it triggers share one lock hold,
@@ -109,7 +112,7 @@ cmd_enable() {
 cmd_disable() {
     key=$(feature_key "$1")
     if [ -z "$key" ]; then
-        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, force-120hz, tg-fix"
+        echo "unknown feature '$1'. try: boost, powerkeeper, battery-spoof, fast-cpu, gpu-floor, powerkeeper-full, parallel-anim, launcher-anim, force-120hz, keep-applied, tg-fix"
         exit 1
     fi
     ht_lock_acquire || exit 1
@@ -135,6 +138,10 @@ cmd_reset() {
 cmd_revert() {
     echo "Reverting to stock behavior for this session (settings.conf is NOT changed)..."
     ht_lock_acquire || exit 1
+
+    # Stop the keep-applied watcher first, otherwise it would re-apply the
+    # tweaks within seconds. Apply/Action starts it again.
+    ht_watch_stop
 
     # PowerKeeper: put back whatever state it was in BEFORE HyperTouch
     # (package and component are handled separately; if the user had it
@@ -172,7 +179,7 @@ cmd_revert() {
     set +f
 
     ht_lock_release
-    echo "Reverted. Run 'action.sh' again (or tap Apply/Action) to reapply your saved settings."
+    echo "Reverted (keep-applied watcher paused). Run 'action.sh' again (or tap Apply/Action) to reapply your saved settings."
 }
 
 cmd_help() {

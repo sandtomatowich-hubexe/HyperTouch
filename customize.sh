@@ -184,6 +184,7 @@ set_perm "$MODPATH/action.sh" 0 0 0755
 set_perm "$MODPATH/apply.sh" 0 0 0755
 set_perm "$MODPATH/lock.sh" 0 0 0755
 set_perm "$MODPATH/common.sh" 0 0 0755
+set_perm "$MODPATH/watch.sh" 0 0 0755
 set_perm "$MODPATH/tools/probe_device.sh" 0 0 0755
 [ -f "$MODPATH/tools/probe_touch.sh" ] && set_perm "$MODPATH/tools/probe_touch.sh" 0 0 0755
 sleep 0.3

@@ -73,6 +73,7 @@ GPU_FLOOR=0
 VM_TWEAKS_ENABLED=0
 SWAPPINESS=60
 FORCE_EXPERIMENTAL=0
+KEEP_APPLIED=1
 
 # settings.conf is parsed, never executed (see common.sh).
 ht_load_conf "$CONF"
@@ -180,6 +181,53 @@ IS_HYPEROS=0
 case "$ROM" in HyperOS*|MIUI*) IS_HYPEROS=1 ;; esac
 say "rom: $ROM"
 
+# Picks whichever of the two known Goodix report-rate nodes exists.
+detect_touch_node() {
+    goodix_dir=$(dirname "$GOODIX_PATH")
+    if [ -w "$goodix_dir/goodix_ts_report_rate" ]; then
+        GOODIX_PATH="$goodix_dir/goodix_ts_report_rate"
+    elif [ -w "$goodix_dir/switch_report_rate" ]; then
+        GOODIX_PATH="$goodix_dir/switch_report_rate"
+    fi
+}
+
+# Light mode used by watch.sh (HT_QUICK=1): re-writes ONLY the touch report
+# rate and the CPU rate limit if the system changed them, then exits. Exit
+# 3 = this device has no hardware profile, so there is nothing to maintain.
+reassert_fast() {
+    case "$DEVICE_PROFILE" in
+        confirmed|experimental-named) ;;
+        *) [ "$FORCE_EXPERIMENTAL" = "1" ] || exit 3 ;;
+    esac
+    detect_touch_node
+    redone=""
+    if [ -w "$GOODIX_PATH" ]; then
+        case "$REPORT_RATE_MODE" in 1) want=480 ;; *) want=240 ;; esac
+        case "$(cat "$GOODIX_PATH" 2>/dev/null)" in
+            *"$want"[Hh][Zz]*) ;;
+            *)
+                echo "$REPORT_RATE_MODE" > "$GOODIX_PATH" 2>/dev/null
+                case "$(cat "$GOODIX_PATH" 2>/dev/null)" in
+                    *"$want"[Hh][Zz]*) redone="$redone touch-rate" ;;
+                esac
+                ;;
+        esac
+    fi
+    if [ "$FAST_CPU_RESPONSE" = "1" ]; then
+        for p in $CPU_POLICIES; do
+            sd="/sys/devices/system/cpu/cpufreq/policy$p/schedutil"
+            for f in rate_limit_us up_rate_limit_us; do
+                [ -w "$sd/$f" ] || continue
+                if [ "$(cat "$sd/$f" 2>/dev/null)" != "500" ]; then
+                    echo 500 > "$sd/$f" 2>/dev/null && redone="$redone policy$p"
+                fi
+            done
+        done
+    fi
+    [ -n "$redone" ] && log -p i -t "$LOGTAG" "keep-applied: re-applied$redone"
+    exit 0
+}
+
 apply_hardware_tweaks() {
     echo "→ hardware tweaks"
 
@@ -190,14 +238,9 @@ apply_hardware_tweaks() {
     # exists on this device rather than hardcoding one — an absent
     # node just means write() skips it and logs "not writable" instead
     # of silently doing nothing on the wrong path.
-    goodix_dir=$(dirname "$GOODIX_PATH")
-    if [ -w "$goodix_dir/goodix_ts_report_rate" ]; then
-        GOODIX_PATH="$goodix_dir/goodix_ts_report_rate"
-    elif [ -w "$goodix_dir/switch_report_rate" ]; then
-        GOODIX_PATH="$goodix_dir/switch_report_rate"
-    fi
-    # else: leave GOODIX_PATH as the profile default; write() will
-    # report it as not-writable rather than fail silently.
+    detect_touch_node
+    # (if neither exists GOODIX_PATH stays the profile default; write()
+    # reports it as not-writable rather than failing silently.)
 
     ht_save_node "$GOODIX_PATH"
     write "$GOODIX_PATH" "$REPORT_RATE_MODE"
@@ -574,6 +617,8 @@ if [ "$TG_LAG_FIX" = "1" ]; then
 fi
 
 # ── run ──
+[ "$HT_QUICK" = "1" ] && reassert_fast
+
 # Capture PowerKeeper's pre-HyperTouch state before anything else runs.
 ht_pk_save
 
@@ -594,6 +639,13 @@ update_live_info
 
 echo "── done ──"
 log -p i -t "$LOGTAG" "apply.sh completed (profile=$DEVICE_PROFILE, rc=$APPLY_RC)."
+
+# Keep the values applied (watch.sh). Off -> make sure no watcher lingers.
+if [ "$KEEP_APPLIED" = "1" ]; then
+    ht_watch_start
+else
+    ht_watch_stop
+fi
 
 [ "$HT_LOCK_HELD" != "1" ] && ht_lock_release
 exit "$APPLY_RC"

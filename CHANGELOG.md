@@ -3,6 +3,7 @@
 ## v3.1.5
 
 **Fixes**
+- **Tweaks no longer fall back to stock after a while.** New "Keep Tweaks Applied" option (on by default): a light background check every 30s re-applies the touch report rate and CPU rate limit if the system changed them. Revert pauses it; it can be turned off in Tweaks
 - **Revert restored to the wrong paths.** Paths with underscores (like `up_rate_limit_us`) were mangled when decoded, so most values never came back. The real path is now stored and used
 - **Update no longer loses your original values.** `.state` is now kept across updates, so the new version can't mistake already-tweaked values for the originals
 - **Unset settings restore as unset.** Values that didn't exist before (e.g. the refresh-rate keys) are deleted on restore instead of staying pinned

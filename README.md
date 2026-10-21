@@ -1,6 +1,6 @@
 <div align="center">
   <h1>HyperTouch</h1>
-  <img src="assets/hypertouch-logo.png" alt="HyperTouch" width="300">
+  <img src="https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/assets/hypertouch-logo.png" alt="HyperTouch" width="300">
 </div>
 
 # What is HyperTouch?
@@ -15,7 +15,7 @@
 </p>
 
 
-`HyperTouch` is a Touch response and system responsiveness tuning module made for **Poco X6 Pro / Redmi K70E (duchamp)**, also with a experimental support for **Poco X7 Pro (rodin)** — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
+`HyperTouch` is a Touch response and system responsiveness tuning module made for **Poco X6 Pro / Redmi K70E (duchamp)**, with experimental support for **Poco X7 Pro (rodin)** (touch boost unverified) — built without requiring kernel modifications. Everything runs as a Magisk/KernelSU module against existing driver and userspace interfaces.
 
 Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **APatch**. The WebUI specifically needs a manager with a KSU-bridge WebView (KernelSU Next, MMRL, APatch's own, or a standalone viewer like KsuWebUIStandalone) — plain Magisk has no in-app WebView, so `action.sh` from a root shell is the way to control the module there instead.
 
@@ -23,12 +23,12 @@ Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **
 
 | Feature | Layer | Status | Notes |
 |---|---|---|---|
-| Boosted touch report rate | Kernel (sysfs) | ✅ Working | Node auto-detected (`goodix_ts_report_rate` or `switch_report_rate`) — see [Device support](#device-support) |
+| Boosted touch report rate | Kernel (sysfs) | ✅ Working on duchamp · 🧪 unverified on rodin | Node auto-detected (`goodix_ts_report_rate` or `switch_report_rate`) — see [Device support](#device-support) |
 | Disable PowerKeeper throttling | System | ✅ Working | No-ops safely on non-HyperOS ROMs |
 | PowerKeeper full disable | System | ✅ Working | Community-verified fix for apps HyperOS caps to 60Hz — also disables Game Turbo boost profiles, same package. See [TG Lag Fix](#tg-lag-fix) |
 | Battery temp override | Kernel (sysfs) | ✅ Working, opt-in | Off by default — hides real overheating from the system |
-| Fast CPU response | Kernel (sysfs) | ✅ Working | schedutil rate-limit tuning, confirmed/named-experimental devices only |
-| GPU floor | Kernel (sysfs) | ✅ Working, opt-in | Reads real OPP steps at runtime rather than guessing a frequency |
+| Fast CPU response | Kernel (sysfs) | ✅ Working | Lowers the schedutil rate limit (uses `up/down_rate_limit_us` if the kernel has them, otherwise the single `rate_limit_us`); warns if the kernel exposes neither. Only on devices with a hardware profile |
+| GPU floor | Kernel (sysfs) | ✅ Working on duchamp, opt-in · untested on rodin | Reads real OPP steps at runtime rather than guessing a frequency |
 | Priority Apps (background exemption) | Userspace | ✅ Working | Kernel-independent, works on any device/ROM |
 | Parallel Animation | System | ✅ Working | Real `deviceLevelList` mechanism — see [below](#parallel-animation) |
 | Launcher Animation | System | ✅ Working | Same idea, scoped to `com.miui.home` — no launcher modification |
@@ -36,8 +36,10 @@ Works with **Magisk**, **KernelSU**, **KernelSU-Next**, **SukiSU Ultra**, and **
 | VM/ZRAM tuning | Kernel (early boot) | ✅ Working, opt-in | Off by default — swappiness, read-ahead, scheduler autogroup |
 | TG Lag Fix | Userspace + System | 🧪 Experimental, rebuilt | Layers Priority Apps + PowerKeeper full-disable — see [below](#tg-lag-fix) |
 | WebUI | — | ✅ Working | Card-dashboard design, swipe navigation, activity log — see [below](#webui) |
+| Keep tweaks applied | Userspace | ✅ Working, on by default | Xiaomi's services rewrite some values while the phone runs (after screen off/on, games, charging). A small background check every 30s re-applies **only** the touch report rate and the CPU rate limit if they were changed. It does not touch the thermal profile, governors or any Settings key. See [Keep Tweaks Applied](#keep-tweaks-applied) |
+| Restore to originals | All | ✅ Working | Every value is saved before it's changed and put back on revert, uninstall, or when you switch the feature off — see [How restore works](#how-restore-works) |
 
-Smooth Touch (animation-scale tuning) was removed as of v3.0.0 — it's redundant with the equivalent controls already in Developer Options.
+Smooth Touch (animation-scale tuning) was removed as of v3.0.0 (fully, including its leftover config/script code, in v3.1.5) — it's redundant with the equivalent controls already in Developer Options.
 
 ## Installation
 
@@ -52,7 +54,7 @@ Four tabs in the bottom nav, plus a Priority Apps page reached by tapping the Pr
 | Page | Contains |
 |---|---|
 | **Home** | Live status (report rate, PowerKeeper, refresh rate, device, kernel) and one-tap Quick Actions |
-| **Tweaks** | Every device-level setting, grouped by what it touches (Sampling, System, Duchamp Tuning, Parallel Animation, Memory/ZRAM) |
+| **Tweaks** | Every device-level setting, grouped by what it touches (Sampling, System, CPU & GPU Tuning, Parallel Animation, Memory/ZRAM) |
 | **Priority Apps** | TG Lag Fix + custom Priority Apps list — reached from Home, not a separate tab |
 | **Settings** | Appearance, motion, page transitions, module reset/revert |
 | **About** | Module and device info, links |
@@ -71,6 +73,8 @@ The nav bar and app bar use real `backdrop-filter` blur — the app bar's blur i
 
 Edit by hand or through the WebUI — both write the same file, so nothing gets out of sync.
 
+`settings.conf` is **parsed, never executed**: only the keys below are read, each value is validated (`0`/`1` flags, a numeric swappiness, and package names that must be dot-separated `[A-Za-z0-9_]` segments), and anything invalid is ignored with a log line. Unknown or removed keys such as `SMOOTH_TOUCH_MODE` are ignored. This matters because the scripts run as root.
+
 | Key | Values | Default | Reboot needed? |
 |---|---|---|---|
 | `REPORT_RATE_MODE` | `0` stock / `1` boosted | `1` | No |
@@ -78,18 +82,18 @@ Edit by hand or through the WebUI — both write the same file, so nothing gets 
 | `POWERKEEPER_FULL_DISABLE` | `0` / `1` | `0` | No |
 | `SPOOF_BATTERY_TEMP` | `0` / `1` | `0` | No |
 | `FAST_CPU_RESPONSE` | `0` / `1` | `1` | No |
+| `KEEP_APPLIED` | `0` / `1` | `1` | No |
 | `GPU_FLOOR` | `0` / `1` | `0` | No |
-| `SMOOTH_TOUCH_MODE` | `0` stock / `1` fast / `2` instant | `1` | No |
 | `PARALLEL_ANIM` | `0` / `1` | `0` | Applied live; reboot guarantees it |
 | `LAUNCHER_ANIM_RATE` | `0` / `1` | `0` | No — launcher auto-restarts |
 | `FORCE_120HZ` | `0` / `1` | `0` | No |
 | `PRIORITY_APPS` | space-separated package names | blank | No |
 | `TG_LAG_FIX` | `0` / `1` | `0` | No |
 | `VM_TWEAKS_ENABLED` | `0` / `1` | `0` | No (early-boot, next apply/boot) |
-| `SWAPPINESS` | `0`–`100` | `60` | No (early-boot, next apply/boot) |
-| `FORCE_EXPERIMENTAL` | `0` / `1` | unset | No |
+| `SWAPPINESS` | `0`–`100` in the WebUI (up to `200` accepted by hand) | `60` | No (early-boot, next apply/boot) |
+| `FORCE_EXPERIMENTAL` | `0` / `1` | unset | No (no WebUI toggle; the WebUI keeps it when it saves) |
 
-`SMOOTH_TOUCH_MODE` no longer has a WebUI control as of v3.0.0 (see [Features](#features)) but remains functional if set by hand — `apply.sh` still reads and applies it.
+Smooth Touch (`SMOOTH_TOUCH_MODE`) is fully removed as of v3.1.5 — the setting is ignored if still present in an old `settings.conf`, and nothing in HyperTouch touches the system animation scales any more.
 
 Everything applies live through `apply.sh`/the WebUI — no reboot needed after the first flash, with two exceptions:
 
@@ -105,14 +109,41 @@ action.sh                    re-apply current settings
 action.sh status              show current settings + device profile
 action.sh enable <feature>    boost | powerkeeper | powerkeeper-full |
                               battery-spoof | fast-cpu | gpu-floor |
-                              parallel-anim | launcher-anim | tg-fix
+                              parallel-anim | launcher-anim | force-120hz |
+                              keep-applied | tg-fix
 action.sh disable <feature>   (same feature names)
 action.sh reset               restore settings.conf to shipped defaults
 action.sh revert              temporarily undo tweaks (settings kept)
 action.sh help                 usage
 ```
 
-`action.sh revert` restores each hardware node to the value it actually held before HyperTouch first touched it (captured once, on first apply) — not a hardcoded guess at a stock value.
+## Keep Tweaks Applied
+
+HyperTouch applies its tweaks at boot and whenever you press Apply/Action. Xiaomi's own services (the touch HAL, thermal engine, power HAL) can rewrite some of the same values afterwards, which used to make tweaks quietly fall back to stock after a while.
+
+With `KEEP_APPLIED=1` (default), `watch.sh` runs in the background and every 30 seconds compares the touch report rate and the CPU rate limit with the configured values using shell builtins only (no process is spawned while nothing has changed). Only if one has drifted does it re-write those two values. It does **not** re-assert the thermal profile, governors, GPU floor or any Settings-provider value, so it doesn't fight Xiaomi's thermal engine or Game Turbo.
+
+- `action.sh revert` stops it, so a revert stays reverted; Apply, Action, or a reboot starts it again.
+- It stops on its own if the module is disabled or removed, or if `KEEP_APPLIED=0`.
+- Turn it off in Tweaks → Keep Tweaks Applied, or with `action.sh disable keep-applied`.
+
+## How restore works
+
+Before HyperTouch changes anything it saves the original value, once, in `.state/` inside the module folder. `action.sh revert`, uninstall, and switching a feature off all put back **that saved value** — never a hardcoded guess at stock.
+
+| What | Saved | Restored |
+|---|---|---|
+| Kernel nodes (sysfs/proc) | the node's value, plus its real path in a `.node` file | written back to that exact path |
+| Settings keys (`deviceLevelList`, launcher rate, min/peak refresh rate) | the value, or a marker if it was **unset** | written back, or deleted if it was unset |
+| PowerKeeper | whether the package and the state-machine component were already disabled | re-enabled only if they were enabled before; left disabled if you had disabled them |
+| Priority Apps | Doze-whitelist membership and the standby bucket | removed from the whitelist (unless it was already there), both AppOps set back to default, bucket put back |
+| Touch report rate | its formatted readback (`touch report rate::480HZ`) | mapped back to the write value that reproduces it (480HZ → 1, 240HZ → 0) |
+
+`.state` is carried across module updates, so an update never mistakes already-tweaked values for the originals. On uninstall, root managers usually run `uninstall.sh` early at the next boot, before the package manager and settings exist, so the restore waits for boot to finish and then runs in the background.
+
+HyperTouch no longer touches the system animation scales or `persist.sys.miui_optimization`, and neither revert nor uninstall changes them.
+
+Two limits: state captured by v3.1.0 has no `.node` files and gets them on the first apply after updating; and if another module or app had already changed a value before HyperTouch first ran, that changed value is what gets recorded as the original.
 
 ## Device support
 
@@ -121,14 +152,14 @@ Hardware-specific tweaks only run on devices with a real profile behind them —
 | Profile | Devices | What runs |
 |---|---|---|
 | `confirmed` | `duchamp` (Poco X6 Pro) | Everything, verified against real hardware |
-| `experimental-named` | `rodin` (Poco X7 Pro) | Everything, but touch/GPU paths are unverified — reuses duchamp's CPU policy layout because both chips genuinely share the same 1+3+4 cluster topology (published spec, not a guess) |
+| `experimental-named` | `rodin` (Poco X7 Pro) | Everything runs, but touch boost is **unverified**: the Goodix node accepts 0/1 and reads back 240/480Hz, yet a tester saw no real 480Hz effect, and the Rodin Essential project documents that its 240/480Hz control goes through Xiaomi's touch HAL rather than this node. CPU/GPU governors are left as the vendor set them (Rodin's Mali governor is `dummy`; some kernels use `sugov_ext`) |
 | `experimental` | anything else | Kernel-independent features only (Priority Apps, PowerKeeper) — hardware sysfs paths skipped |
 
 Set `FORCE_EXPERIMENTAL=1` in `settings.conf` to try the hardware paths on any device anyway. They're guarded by a `-w` check either way, so a wrong guess just no-ops rather than doing something unexpected — but it's still a guess, not a confirmation.
 
 This applies independently of ROM: hardware tweaks are gated on the device code (`duchamp`/`rodin`), not on running HyperOS specifically. Only the HyperOS/MIUI-only pieces (PowerKeeper, `deviceLevelList`-based animation tuning) are ROM-gated, and those already no-op safely on AOSP-based ROMs.
 
-**Touch report-rate node**: two different Goodix driver builds expose this under different sysfs node names — `switch_report_rate` (confirmed on HyperOS/duchamp) or `goodix_ts_report_rate` (reported on some AOSP-based builds, unconfirmed on any specific ROM at time of writing). `apply.sh` checks for both at apply-time and uses whichever actually exists, rather than hardcoding one and silently failing on the other.
+**Touch report-rate node**: two different Goodix driver builds expose this under different sysfs node names — `switch_report_rate` (confirmed on HyperOS/duchamp) or `goodix_ts_report_rate` (reported on some AOSP-based builds, unconfirmed on any specific ROM at time of writing). `apply.sh` checks for both at apply-time and uses whichever actually exists, rather than hardcoding one and silently failing on the other. A node accepting the write and reading back 480HZ only shows the value was accepted — on rodin the real touch rate did not change in a measuring app (see Device support), so treat the readback with care there. FocalTech-panel units have neither node and skip the touch boost.
 
 ## TG Lag Fix
 
@@ -144,23 +175,30 @@ One thing no root tweak can reach: Telegram's own animated chat background is a 
 ## Parallel Animation
 
 <a id="parallel-animation"></a>
-HyperOS gates certain animations (parallel-rendered transitions, some launcher effects) behind a device's assigned "animation tier," read from the `deviceLevelList` Settings key. duchamp and rodin are hardware-capable but classified below the tier that unlocks it by default. `PARALLEL_ANIM` sets it directly: `settings put system deviceLevelList "v:1,c:3,g:3"`. Applied immediately; a reboot is the only way to *guarantee* HyperOS has re-read it, since there's no single safe process this module can restart to force that the way it can for the launcher below.
+HyperOS gates certain animations (parallel-rendered transitions, some launcher effects) behind a device's assigned "animation tier," read from the `deviceLevelList` Settings key. duchamp is hardware-capable but classified below the tier that unlocks it by default (rodin units probed so far already report this value, so it is a no-op there). `PARALLEL_ANIM` sets it directly: `settings put system deviceLevelList "v:1,c:3,g:3"`. Applied immediately; a reboot is the only way to *guarantee* HyperOS has re-read it, since there's no single safe process this module can restart to force that the way it can for the launcher below.
 
 `LAUNCHER_ANIM_RATE` is the same idea scoped specifically to the stock launcher (`com.miui.home`) via `miui_home_animation_rate` — a Settings key the launcher itself reads at runtime. Toggling it force-restarts `com.miui.home`, which Android relaunches automatically (it's the home app), so this one is a genuine instant hot-reload — no manual force-stop or reboot needed.
 
 ## Force 120Hz Everywhere
 
-Pins `min_refresh_rate` and `peak_refresh_rate` to 120Hz, the same mechanism AOSP's own Developer Options uses for "Force peak refresh rate" — HyperOS doesn't expose an equivalent toggle on its own. This stops the display from adaptively dropping to a lower rate on static or low-motion content, at a real, deliberate battery cost — that's the entire point of the feature, not a side effect to be optimized away. `apply.sh` checks that the display actually reports a 120Hz-or-higher mode before writing anything, so it safely no-ops rather than force a rate the panel can't reach.
+Pins `min_refresh_rate` and `peak_refresh_rate` to 120Hz, the same mechanism AOSP's own Developer Options uses for "Force peak refresh rate" — HyperOS doesn't expose an equivalent toggle on its own. This stops the display from adaptively dropping to a lower rate on static or low-motion content, at a real, deliberate battery cost — that's the entire point of the feature, not a side effect to be optimized away. `apply.sh` first checks the panel's supported modes (rounded, so a reported 119.99 counts as 120) and skips if it tops out below ~118Hz; if it can't read the modes at all it tries anyway. After writing, it **reads the values back** and reports a failure (and exits with code 2) if the system rejected or overrode them, instead of claiming success.
 
 ## Contributing
 
-**Adding a new device:** run `tools/probe_device.sh` as root and open an issue with the output. Confirmed devices get a case-statement entry in `apply.sh` with their own paths — not guesses.
+**Adding a new device:** run `tools/probe_device.sh` as root and open an issue with the output. It is read-only and collects the touch node, CPU clusters and schedutil settings, GPU devfreq, thermal/battery nodes, refresh modes and PowerKeeper, with no personal data. A hardware profile is only marked `confirmed` after the effect has been measured on a real device (readback alone is not enough). Confirmed devices get a case-statement entry in `apply.sh` with their own paths — not guesses.
 
 ```
 adb shell su -c "sh /sdcard/probe_device.sh" > probe_device.txt
 ```
 
 If your device's touch report-rate node turns out to be neither `switch_report_rate` nor `goodix_ts_report_rate`, that's also worth an issue — `apply.sh` currently only checks those two.
+
+## Known limitations
+
+- **Keep Tweaks Applied** can't help with values the system changes *during* a game faster than every 30 seconds, and it only covers the two values above.
+- **Rodin touch boost is unverified** (see Device support). FocalTech-panel units are unsupported for touch.
+- Priority Apps restores AppOps to *default*, not to any custom per-app mode you had set.
+- If two HyperTouch operations overlap, the second waits for the first (up to 2 minutes) and then gives up with an error rather than running at the same time.
 
 ## Upcoming Device Support
 
