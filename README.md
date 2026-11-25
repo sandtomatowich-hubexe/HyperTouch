@@ -3,6 +3,18 @@
   <img src="https://raw.githubusercontent.com/sandtomatowich-hubexe/HyperTouch/main/assets/hypertouch-logo.png" alt="HyperTouch" width="300">
 </div>
 
+<p align="center">
+
+[![Release](https://img.shields.io/github/v/release/sandtomatowich-hubexe/HyperTouch?include_prereleases&label=release&logo=github)](https://github.com/sandtomatowich-hubexe/HyperTouch/releases)
+![License](https://img.shields.io/github/license/sandtomatowich-hubexe/HyperTouch?label=license)
+[![Downloads](https://img.shields.io/github/downloads/sandtomatowich-hubexe/HyperTouch/total?label=downloads&logo=github)](https://github.com/sandtomatowich-hubexe/HyperTouch/releases)
+
+![Android](https://img.shields.io/badge/Android-14%2B-3DDC84?logo=android&logoColor=white)
+![Root](https://img.shields.io/badge/Root-Magisk%20%7C%20KernelSU%20%7C%20APatch-blue)
+![Device](https://img.shields.io/badge/Device-duchamp%20%7C%20rodin-orange)
+
+</p>
+
 # What is HyperTouch?
 
 
